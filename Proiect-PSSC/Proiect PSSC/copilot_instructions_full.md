@@ -1,4 +1,4 @@
-# GitHub Copilot Instructions for PlaceOrder Workflow (DDD)
+# GitHub Copilot Instructions for DDD Project
 
 ## Code Style and Patterns
 
@@ -246,96 +246,76 @@ public static class EntityProcessedEvent
 Format: `VerbNounCommand`
 - Use imperative verb (what to do)
 - Singular noun for entity
-- Examples: `PlaceOrderCommand`, `ValidateOrderCommand`, `CheckInventoryCommand`
+- Examples: `ScheduleExamCommand`, `AllocateRoomCommand`, `PlaceOrderCommand`
 
 ### Events
 Format: `NounVerbedEvent` (past tense)
 - Use past participle (what happened)
 - Singular noun for entity
-- Examples: `OrderPlacedEvent`, `OrderValidatedEvent`, `InventoryCheckedEvent`
+- Examples: `ExamScheduledEvent`, `RoomAllocatedEvent`, `OrderPlacedEvent`
 
 ### Operations
 Format: `VerbEntityOperation`
 - Use imperative verb describing the transformation
 - Entity name in singular
-- Examples: `ValidateOrderOperation`, `CheckInventoryOperation`, `CalculatePriceOperation`
+- Examples: `ValidateExamOperation`, `CalculateScoreOperation`, `PublishResultsOperation`
 
 ### Value Objects
 Format: Domain-specific nouns
 - Clear, unambiguous domain terms
 - Avoid generic names like "Value" or "Data"
-- Examples: `OrderId`, `CustomerId`, `ProductId`, `Quantity`, `Price`
+- Examples: `StudentId`, `ExamDate`, `CourseCode`, `EmailAddress`, `PhoneNumber`
 
 ### Entity States
 Format: `StateEntity`
 - State as adjective or descriptor
 - Entity name in singular
-- Examples: `UnvalidatedOrder`, `ValidatedOrder`, `PlacedOrder`, `RejectedOrder`
+- Examples: `UnvalidatedExam`, `ValidatedExam`, `PublishedExam`, `InvalidExam`
 
-## Project Structure - PlaceOrder
+## Project Structure
 ```
-OrdersService/
-├── Domain/
-│   ├── Models/
-│   │   ├── Commands/
-│   │   │   └── PlaceOrderCommand.cs
-│   │   ├── Events/
-│   │   │   ├── OrderPlacedEvent.cs
-│   │   │   └── OrderPlacedFailedEvent.cs
-│   │   ├── ValueObjects/
-│   │   │   ├── OrderId.cs
-│   │   │   ├── CustomerId.cs
-│   │   │   ├── ProductId.cs
-│   │   │   ├── Quantity.cs
-│   │   │   ├── UnitPrice.cs
-│   │   │   ├── Price.cs
-│   │   │   ├── TaxRate.cs
-│   │   │   ├── OrderDate.cs
-│   │   │   └── OrderStatus.cs
-│   │   └── Entities/
-│   │       └── OrderStates.cs
-│   ├── Operations/
-│   │   ├── ValidateOrderOperation.cs
-│   │   ├── CheckInventoryOperation.cs
-│   │   ├── CalculatePriceOperation.cs
-│   │   ├── ConfirmOrderOperation.cs
-│   │   └── PlaceOrderOperation.cs
-│   ├── Workflows/
-│   │   └── PlaceOrderWorkflow.cs
-│   └── Exceptions/
-│       ├── DomainException.cs
-│       ├── InvalidCustomerException.cs
-│       ├── InvalidProductException.cs
-│       ├── OutOfStockException.cs
-│       └── InvalidOrderException.cs
-├── Application/
-│   ├── Services/
-│   │   ├── OrderService.cs
-│   │   ├── InventoryService.cs
-│   │   └── ServiceBusPublisher.cs
-│   └── DTOs/
-│       ├── PlaceOrderRequest.cs
-│       └── PlaceOrderResponse.cs
-├── Infrastructure/
-│   ├── Data/
-│   │   ├── ApplicationDbContext.cs
-│   │   └── Repositories/
-│   │       ├── OrderRepository.cs
-│   │       ├── CustomerRepository.cs
-│   │       ├── ProductRepository.cs
-│   │       └── InventoryRepository.cs
-│   ├── ServiceBus/
-│   │   └── ServiceBusPublisher.cs
-│   └── Configuration/
-│       └── ServiceConfiguration.cs
-├── Api/
-│   ├── Controllers/
-│   │   └── OrdersController.cs
-│   └── Program.cs
-├── appsettings.json
-├── appsettings.Development.json
-└── OrdersService.csproj
-```
+Domain/
+├── Models/
+│   ├── Commands/
+│   │   ├── PlaceOrderCommand.cs
+│   │   ├── GenerateInvoiceCommand.cs
+│   │   └── DeliverOrderCommand.cs
+│   ├── Events/
+│   │   ├── OrderPlacedEvent.cs
+│   │   ├── OrderValidatedEvent.cs
+│   │   ├── InvoiceGeneratedEvent.cs
+│   │   ├── InvoiceSentEvent.cs
+│   │   ├── OrderPreparedEvent.cs
+│   │   └── OrderDeliveredEvent.cs
+│   ├── ValueObjects/
+│   │   ├── OrderId.cs
+│   │   ├── CustomerId.cs
+│   │   ├── InvoiceId.cs
+│   │   ├── Money.cs
+│   │   └── Address.cs
+│   │   └── ProductId.cs
+│   └── Entities/
+│       ├── Order.cs
+│       ├── Invoice.cs
+│       └── Shipment.cs
+├── Operations/
+│   ├── ValidateOrderOperation.cs
+│   ├── CheckAvailabilityOperation.cs
+│   ├── ReserveStockOperation.cs
+│   ├── ValidateInvoiceOperation.cs
+│   ├── GenerateInvoiceOperation.cs
+│   ├── SendInvoiceOperation.cs
+│   ├── ValidateShipmentOperation.cs
+│   ├── PrepareShipmentOperation.cs
+│   └── DeliverShipmentOperation.cs
+├── Workflows/
+│   ├── PlaceOrderWorkflow.cs
+│   ├── GenerateInvoiceWorkflow.cs
+│   └── DeliverOrderWorkflow.cs
+└── Exceptions/
+    ├── DomainException.cs
+    ├── InvalidOrderException.cs
+    └── InvalidInvoiceException.cs```
 
 ## Important Rules
 
@@ -400,20 +380,3 @@ OrdersService/
 - Operations: test each state transition
 - Workflows: test happy path and failure scenarios
 - Use descriptive test names: `MethodName_Scenario_ExpectedResult`
-
-## Database Integration
-
-### Entity Framework Core
-- Use DbContext for data access
-- Define DbSet for each entity (Order, Customer, Product, Inventory)
-- Use migrations for schema versioning
-- Lazy load related entities when needed
-
-### Repository Pattern
-- Create repository for each aggregate root (OrderRepository)
-- Use dependency injection for repositories
-- Repositories as boundaries to database
-
-### Transactions
-- Use transactions when multiple tables updated
-- Ensure data consistency across related records
