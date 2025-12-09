@@ -1,19 +1,7 @@
-// Create Money value object following the pattern from copilot-instructions.md
-//
-// Requirements:
-// - Record type with immutability
-// - Private constructor with validation
-// - Static TryParse method for safe parsing from string
-// - Properties: decimal Amount, string Currency
-// - Validation: Amount >= 0, Currency is 3-letter ISO code (USD, EUR, RON, etc.)
-// - Pattern for Currency: ^[A-Z]{3}$
-// - Override ToString() for serialization (format: "123.45 USD")
-// - Throw InvalidMoneyException on invalid input
-//
-// Example valid Money: "100.50 USD", "250.00 EUR", "1500.00 RON"
 using System;
 using System.Globalization;
 using System.Text.RegularExpressions;
+using Domain.Exceptions;
 
 namespace Domain.Models.ValueObjects
 {
@@ -98,33 +86,5 @@ namespace Domain.Models.ValueObjects
         }
 
         public override string ToString() => $"{Amount.ToString("F2", CultureInfo.InvariantCulture)} {Currency}";
-    }
-
-    public sealed class InvalidMoneyException : ArgumentException
-    {
-        public string? AttemptedValue { get; }
-
-        public InvalidMoneyException()
-            : base("Invalid Money.")
-        {
-        }
-
-        public InvalidMoneyException(string? attemptedValue)
-            : base("Invalid Money.")
-        {
-            AttemptedValue = attemptedValue;
-        }
-
-        public InvalidMoneyException(string? attemptedValue, string message)
-            : base(message)
-        {
-            AttemptedValue = attemptedValue;
-        }
-
-        public InvalidMoneyException(string? attemptedValue, string message, Exception innerException)
-            : base(message, innerException)
-        {
-            AttemptedValue = attemptedValue;
-        }
     }
 }

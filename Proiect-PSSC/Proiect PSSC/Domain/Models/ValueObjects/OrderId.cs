@@ -13,6 +13,7 @@
 // Example valid OrderIds: "ORD-001", "ORD-12345", "ORD-ABC123"
 using System;
 using System.Text.RegularExpressions;
+using Domain.Exceptions;
 
 namespace Domain.Models.ValueObjects
 {
@@ -60,33 +61,5 @@ namespace Domain.Models.ValueObjects
         }
 
         public override string ToString() => Value;
-    }
-
-    public sealed class InvalidOrderIdException : ArgumentException
-    {
-        public string? AttemptedValue { get; }
-
-        public InvalidOrderIdException()
-            : base("Invalid OrderId.")
-        {
-        }
-
-        public InvalidOrderIdException(string? attemptedValue)
-            : base("Invalid OrderId.")
-        {
-            AttemptedValue = attemptedValue;
-        }
-
-        public InvalidOrderIdException(string? attemptedValue, string message)
-            : base(message)
-        {
-            AttemptedValue = attemptedValue;
-        }
-
-        public InvalidOrderIdException(string? attemptedValue, string message, Exception innerException)
-            : base(message, innerException)
-        {
-            AttemptedValue = attemptedValue;
-        }
     }
 }

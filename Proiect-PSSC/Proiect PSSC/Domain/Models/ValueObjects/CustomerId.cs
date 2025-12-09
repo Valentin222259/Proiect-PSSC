@@ -13,6 +13,7 @@
 // Example valid CustomerIds: "CUST-001", "CUST-12345", "CUST-ABC123"
 using System;
 using System.Text.RegularExpressions;
+using Domain.Exceptions;
 
 namespace Domain.Models.ValueObjects
 {
@@ -60,33 +61,5 @@ namespace Domain.Models.ValueObjects
         }
 
         public override string ToString() => Value;
-    }
-
-    public sealed class InvalidCustomerIdException : ArgumentException
-    {
-        public string? AttemptedValue { get; }
-
-        public InvalidCustomerIdException()
-            : base("Invalid CustomerId.")
-        {
-        }
-
-        public InvalidCustomerIdException(string? attemptedValue)
-            : base("Invalid CustomerId.")
-        {
-            AttemptedValue = attemptedValue;
-        }
-
-        public InvalidCustomerIdException(string? attemptedValue, string message)
-            : base(message)
-        {
-            AttemptedValue = attemptedValue;
-        }
-
-        public InvalidCustomerIdException(string? attemptedValue, string message, Exception innerException)
-            : base(message, innerException)
-        {
-            AttemptedValue = attemptedValue;
-        }
     }
 }
