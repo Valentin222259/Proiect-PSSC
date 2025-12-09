@@ -2,9 +2,13 @@
 using Domain.Workflows;
 using Domain.Models.Entities;
 using Domain.Models.Commands;
-using static Domain.Events.OrderPlacedEvent; // Pentru acces la evenimente
+using static Domain.Events.OrderPlacedEvent;
+using Proiect_PSSC.Data;
+using Domain.Models.ValueObjects;
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace Proiect_PSSC.Controllers
 {
@@ -13,17 +17,18 @@ namespace Proiect_PSSC.Controllers
     public class OrderController : ControllerBase
     {
         private readonly PlaceOrderWorkflow _workflow;
+        private readonly ApplicationDbContext _dbContext;
 
-        // Injectăm workflow-ul configurat în Program.cs
-        public OrderController(PlaceOrderWorkflow workflow)
+        public OrderController(PlaceOrderWorkflow workflow, ApplicationDbContext dbContext)
         {
             _workflow = workflow;
+            _dbContext = dbContext;
         }
 
         [HttpPost("place-order")]
-        public IActionResult PlaceOrder([FromBody] OrderRequestDto request)
+        public async Task<IActionResult> PlaceOrder([FromBody] OrderRequestDto request)
         {
-            // 1. Transformăm DTO-ul primit de la client în UnvalidatedOrder
+            // 1. Transform DTO to UnvalidatedOrder
             var unvalidatedItems = new List<UnvalidatedOrderItem>();
             foreach (var item in request.Items)
             {
@@ -38,22 +43,13 @@ namespace Proiect_PSSC.Controllers
 
             var command = new PlaceOrderCommand(unvalidatedOrder);
 
-            // 2. Definim funcțiile de dependență (MOCK - simulate pentru test)
-            // În realitate, aici ai apela un Repository sau o bază de date
-
-            // Verifică dacă clientul începe cu "CUST"
+            // 2. Mock dependencies
             Func<string, bool> checkCustomer = (id) => id.StartsWith("CUST");
-
-            // Orice produs e valid
             Func<string, bool> checkProduct = (id) => true;
-
-            // Stocul e mereu 100
             Func<string, int> getStock = (id) => 100;
-
-            // Rezervarea returnează un ID unic
             Func<string, int, string> reserveStock = (id, qty) => $"RES-{Guid.NewGuid().ToString().Substring(0, 8)}";
 
-            // 3. Executăm Workflow-ul
+            // 3. Execute workflow
             var result = _workflow.Execute(
                 command,
                 checkCustomer,
@@ -62,24 +58,61 @@ namespace Proiect_PSSC.Controllers
                 reserveStock
             );
 
-            // 4. Returnăm un răspuns HTTP în funcție de rezultat (Pattern Matching)
+            // 4. Process result and save to database if successful
             return result switch
             {
-                OrderPlacedSucceededEvent success => Ok(new
-                {
-                    Message = "Comanda plasata cu succes!",
-                    InvoiceInfo = success.Csv,
-                    Data = success.PlacedDate
-                }),
-
+                OrderPlacedSucceededEvent success => await SaveOrderAndReturnResponse(success),
                 OrderPlacedFailedEvent failed => BadRequest(new
                 {
                     Message = "Comanda a esuat.",
                     Reasons = failed.Reasons
                 }),
-
                 _ => StatusCode(500, "Stare necunoscuta")
             };
+        }
+
+        private async Task<IActionResult> SaveOrderAndReturnResponse(OrderPlacedSucceededEvent successEvent)
+        {
+            try
+            {
+                // Convert StockReservedOrder to DeliveredOrder
+                var stockReserved = successEvent.Order;
+                
+                // Create a PreparedOrder (simulate order preparation)
+                var preparedOrder = new PreparedOrder(
+                    stockReserved,
+                    DateTime.UtcNow,
+                    "Warehouse-A"
+                );
+
+                // Create a DeliveredOrder (simulate order delivery)
+                var deliveredOrder = new DeliveredOrder(
+                    preparedOrder,
+                    DateTime.UtcNow,
+                    "SIGNATURE-" + Guid.NewGuid().ToString().Substring(0, 8)
+                );
+
+                // Add to database
+                _dbContext.DeliveredOrders.Add(deliveredOrder);
+                await _dbContext.SaveChangesAsync();
+
+                return Ok(new
+                {
+                    Message = "Comanda plasata cu succes si salvata in baza de date!",
+                    OrderId = deliveredOrder.CustomerId.Value,
+                    InvoiceInfo = successEvent.Csv,
+                    PlacedDate = successEvent.PlacedDate,
+                    DeliveredAt = deliveredOrder.DeliveredAt
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    Message = "Comanda a fost procesata dar nu a putut fi salvata in baza de date.",
+                    Error = ex.Message
+                });
+            }
         }
     }
 

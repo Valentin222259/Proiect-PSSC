@@ -53,8 +53,21 @@ namespace Domain.Models.Entities
     // Raw item in unvalidated state
     public record UnvalidatedShipmentItem(string ProductId, int Quantity);
 
-    // Validated shipment item
-    public record ShipmentItem(ProductId ProductId, int Quantity);
+    // Validated shipment item - with EF Core support
+    public record ShipmentItem
+    {
+        public ProductId ProductId { get; init; }
+        public int Quantity { get; init; }
+
+        public ShipmentItem(ProductId productId, int quantity)
+        {
+            ProductId = productId;
+            Quantity = quantity;
+        }
+
+        // EF Core constructor
+        private ShipmentItem() { }
+    }
 
     // 1. UnvalidatedShipment - raw input (strings)
     public record UnvalidatedShipment(string OrderId, string CustomerId, IReadOnlyCollection<UnvalidatedShipmentItem> Items, string DeliveryAddress) : IShipment
@@ -83,12 +96,47 @@ namespace Domain.Models.Entities
         }
     }
 
-    // 4. DeliveredShipment
-    public record DeliveredShipment(OrderId OrderId, CustomerId CustomerId, IReadOnlyCollection<ShipmentItem> Items, Address DeliveryAddress, string TrackingNumber, DateTime PreparedAt, string Carrier, DateTime DeliveredAt, string RecipientName, string DeliverySignature) : IShipment
+    // 4. DeliveredShipment - with EF Core support
+    public record DeliveredShipment : IShipment
     {
+        public OrderId OrderId { get; init; }
+        public CustomerId CustomerId { get; init; }
+        public IReadOnlyCollection<ShipmentItem> Items { get; init; }
+        public Address DeliveryAddress { get; init; }
+        public string TrackingNumber { get; init; }
+        public DateTime PreparedAt { get; init; }
+        public string Carrier { get; init; }
+        public DateTime DeliveredAt { get; init; }
+        public string RecipientName { get; init; }
+        public string DeliverySignature { get; init; }
+
+        public DeliveredShipment(OrderId orderId, CustomerId customerId, IReadOnlyCollection<ShipmentItem> items, Address deliveryAddress, string trackingNumber, DateTime preparedAt, string carrier, DateTime deliveredAt, string recipientName, string deliverySignature)
+        {
+            OrderId = orderId;
+            CustomerId = customerId;
+            Items = items;
+            DeliveryAddress = deliveryAddress;
+            TrackingNumber = trackingNumber;
+            PreparedAt = preparedAt;
+            Carrier = carrier;
+            DeliveredAt = deliveredAt;
+            RecipientName = recipientName;
+            DeliverySignature = deliverySignature;
+        }
+
         internal DeliveredShipment(PreparedShipment prepared, DateTime deliveredAt, string recipientName, string deliverySignature)
             : this(prepared.OrderId, prepared.CustomerId, prepared.Items, prepared.DeliveryAddress, prepared.TrackingNumber, prepared.PreparedAt, prepared.Carrier, deliveredAt, recipientName ?? string.Empty, deliverySignature ?? string.Empty)
         {
+        }
+
+        // EF Core constructor
+        private DeliveredShipment()
+        {
+            Items = new List<ShipmentItem>();
+            TrackingNumber = string.Empty;
+            Carrier = string.Empty;
+            RecipientName = string.Empty;
+            DeliverySignature = string.Empty;
         }
     }
 

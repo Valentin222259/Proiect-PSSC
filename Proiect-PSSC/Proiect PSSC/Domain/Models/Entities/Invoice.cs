@@ -53,8 +53,25 @@ namespace Domain.Models.Entities
     // Raw item in unvalidated state
     public record UnvalidatedInvoiceItem(string ProductId, int Quantity, string UnitPrice);
 
-    // Validated invoice item
-    public record InvoiceItem(ProductId ProductId, int Quantity, Money UnitPrice, Money LineTotal);
+    // Validated invoice item - with EF Core support
+    public record InvoiceItem
+    {
+        public ProductId ProductId { get; init; }
+        public int Quantity { get; init; }
+        public Money UnitPrice { get; init; }
+        public Money LineTotal { get; init; }
+
+        public InvoiceItem(ProductId productId, int quantity, Money unitPrice, Money lineTotal)
+        {
+            ProductId = productId;
+            Quantity = quantity;
+            UnitPrice = unitPrice;
+            LineTotal = lineTotal;
+        }
+
+        // EF Core constructor
+        private InvoiceItem() { }
+    }
 
     // 1. UnvalidatedInvoice - raw input (strings)
     public record UnvalidatedInvoice(string OrderId, string CustomerId, IReadOnlyCollection<UnvalidatedInvoiceItem> Items, string TotalAmount, string BillingAddress) : IInvoice
@@ -83,12 +100,48 @@ namespace Domain.Models.Entities
         }
     }
 
-    // 4. SentInvoice
-    public record SentInvoice(OrderId OrderId, CustomerId CustomerId, IReadOnlyCollection<InvoiceItem> Items, Money TotalAmount, Address BillingAddress, InvoiceId InvoiceId, DateTime GeneratedAt, string InvoiceNumber, DateTime SentAt, string SentTo, string DeliveryMethod) : IInvoice
+    // 4. SentInvoice - with EF Core support
+    public record SentInvoice : IInvoice
     {
+        public OrderId OrderId { get; init; }
+        public CustomerId CustomerId { get; init; }
+        public IReadOnlyCollection<InvoiceItem> Items { get; init; }
+        public Money TotalAmount { get; init; }
+        public Address BillingAddress { get; init; }
+        public InvoiceId InvoiceId { get; init; }
+        public DateTime GeneratedAt { get; init; }
+        public string InvoiceNumber { get; init; }
+        public DateTime SentAt { get; init; }
+        public string SentTo { get; init; }
+        public string DeliveryMethod { get; init; }
+
+        public SentInvoice(OrderId orderId, CustomerId customerId, IReadOnlyCollection<InvoiceItem> items, Money totalAmount, Address billingAddress, InvoiceId invoiceId, DateTime generatedAt, string invoiceNumber, DateTime sentAt, string sentTo, string deliveryMethod)
+        {
+            OrderId = orderId;
+            CustomerId = customerId;
+            Items = items;
+            TotalAmount = totalAmount;
+            BillingAddress = billingAddress;
+            InvoiceId = invoiceId;
+            GeneratedAt = generatedAt;
+            InvoiceNumber = invoiceNumber;
+            SentAt = sentAt;
+            SentTo = sentTo;
+            DeliveryMethod = deliveryMethod;
+        }
+
         internal SentInvoice(GeneratedInvoice generated, DateTime sentAt, string sentTo, string deliveryMethod)
             : this(generated.OrderId, generated.CustomerId, generated.Items, generated.TotalAmount, generated.BillingAddress, generated.InvoiceId, generated.GeneratedAt, generated.InvoiceNumber, sentAt, sentTo ?? string.Empty, deliveryMethod ?? string.Empty)
         {
+        }
+
+        // EF Core constructor
+        private SentInvoice()
+        {
+            Items = new List<InvoiceItem>();
+            InvoiceNumber = string.Empty;
+            SentTo = string.Empty;
+            DeliveryMethod = string.Empty;
         }
     }
 

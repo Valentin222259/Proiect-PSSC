@@ -56,8 +56,23 @@ namespace Domain.Models.Entities
     // Raw item in unvalidated state
     public record UnvalidatedOrderItem(string ProductId, int Quantity);
 
-    // Validated order item
-    public record OrderItem(ProductId ProductId, int Quantity, Money UnitPrice);
+    // Validated order item - with EF Core support
+    public record OrderItem
+    {
+        public ProductId ProductId { get; init; }
+        public int Quantity { get; init; }
+        public Money UnitPrice { get; init; }
+
+        public OrderItem(ProductId productId, int quantity, Money unitPrice)
+        {
+            ProductId = productId;
+            Quantity = quantity;
+            UnitPrice = unitPrice;
+        }
+
+        // EF Core constructor
+        private OrderItem() { }
+    }
 
     // 1. UnvalidatedOrder - raw input (strings)
     public record UnvalidatedOrder(string CustomerId, IReadOnlyCollection<UnvalidatedOrderItem> Items, string DeliveryAddress) : IOrder
@@ -95,12 +110,46 @@ namespace Domain.Models.Entities
         }
     }
 
-    // 5. DeliveredOrder
-    public record DeliveredOrder(CustomerId CustomerId, IReadOnlyCollection<OrderItem> Items, Address DeliveryAddress, Money TotalAmount, string ReservationId, DateTime ReservedAt, DateTime PreparedAt, string WarehouseLocation, DateTime DeliveredAt, string DeliverySignature) : IOrder
+    // 5. DeliveredOrder - with EF Core support
+    public record DeliveredOrder : IOrder
     {
+        public CustomerId CustomerId { get; init; }
+        public IReadOnlyCollection<OrderItem> Items { get; init; }
+        public Address DeliveryAddress { get; init; }
+        public Money TotalAmount { get; init; }
+        public string ReservationId { get; init; }
+        public DateTime ReservedAt { get; init; }
+        public DateTime PreparedAt { get; init; }
+        public string WarehouseLocation { get; init; }
+        public DateTime DeliveredAt { get; init; }
+        public string DeliverySignature { get; init; }
+
+        public DeliveredOrder(CustomerId customerId, IReadOnlyCollection<OrderItem> items, Address deliveryAddress, Money totalAmount, string reservationId, DateTime reservedAt, DateTime preparedAt, string warehouseLocation, DateTime deliveredAt, string deliverySignature)
+        {
+            CustomerId = customerId;
+            Items = items;
+            DeliveryAddress = deliveryAddress;
+            TotalAmount = totalAmount;
+            ReservationId = reservationId;
+            ReservedAt = reservedAt;
+            PreparedAt = preparedAt;
+            WarehouseLocation = warehouseLocation;
+            DeliveredAt = deliveredAt;
+            DeliverySignature = deliverySignature;
+        }
+
         internal DeliveredOrder(PreparedOrder prepared, DateTime deliveredAt, string deliverySignature)
             : this(prepared.CustomerId, prepared.Items, prepared.DeliveryAddress, prepared.TotalAmount, prepared.ReservationId, prepared.ReservedAt, prepared.PreparedAt, prepared.WarehouseLocation, deliveredAt, deliverySignature ?? string.Empty)
         {
+        }
+
+        // EF Core constructor
+        private DeliveredOrder()
+        {
+            Items = new List<OrderItem>();
+            ReservationId = string.Empty;
+            WarehouseLocation = string.Empty;
+            DeliverySignature = string.Empty;
         }
     }
 

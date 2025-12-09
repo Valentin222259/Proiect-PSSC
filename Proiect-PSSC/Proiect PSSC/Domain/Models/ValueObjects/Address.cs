@@ -10,7 +10,8 @@
 // - Override ToString() for serialization (format: "Street, City, PostalCode, Country")
 // - Throw InvalidAddressException on invalid input
 //
-// Example valid Address: "123 Main St, New York, 10001, USA"
+// Example valid Address input: "123 Main St|New York|10001|USA"
+// Example ToString() output: "123 Main St, New York, 10001, USA"
 using System;
 using System.Text.RegularExpressions;
 using Domain.Exceptions;
@@ -37,6 +38,7 @@ namespace Domain.Models.ValueObjects
         /// <summary>
         /// Attempts to parse input in the format "Street|City|PostalCode|Country".
         /// Returns false when input is null/empty, malformed, or fails validation.
+        /// Example input: "123 Main St|New York|10001|USA"
         /// </summary>
         public static bool TryParse(string? input, out Address address)
         {
@@ -74,6 +76,8 @@ namespace Domain.Models.ValueObjects
 
         /// <summary>
         /// Parses input in the format "Street|City|PostalCode|Country" or throws <see cref="InvalidAddressException"/>.
+        /// Example: "123 Main St|New York|10001|USA"
+        /// Output via ToString(): "123 Main St, New York, 10001, USA"
         /// </summary>
         /// <exception cref="InvalidAddressException">Thrown when input is invalid.</exception>
         public static Address Parse(string? input)
@@ -81,7 +85,7 @@ namespace Domain.Models.ValueObjects
             if (TryParse(input, out var addr))
                 return addr;
 
-            throw new InvalidAddressException(input, "Address is invalid. Expected format: \"Street|City|PostalCode|Country\". PostalCode must match ^[A-Za-z0-9\\s-]{1,20}$.");
+            throw new InvalidAddressException(input, "Address is invalid. Expected format: \"Street|City|PostalCode|Country\". Example: \"123 Main St|New York|10001|USA\". PostalCode must match ^[A-Za-z0-9\\s-]{1,20}$.");
         }
 
         public override string ToString() => $"{Street}, {City}, {PostalCode}, {Country}";
