@@ -46,7 +46,7 @@ namespace Proiect_PSSC.Controllers
             // 2. Mock dependencies
             Func<string, bool> checkCustomer = (id) => id.StartsWith("CUST");
             Func<string, bool> checkProduct = (id) => true;
-            Func<string, int> getStock = (id) => 100;
+            Func<string, int> getStock = (id) => 100;  
             Func<string, int, string> reserveStock = (id, qty) => $"RES-{Guid.NewGuid().ToString().Substring(0, 8)}";
 
             // 3. Execute workflow
@@ -54,7 +54,7 @@ namespace Proiect_PSSC.Controllers
                 command,
                 checkCustomer,
                 checkProduct,
-                getStock,
+                getStock,        
                 reserveStock
             );
 
@@ -116,7 +116,7 @@ namespace Proiect_PSSC.Controllers
         }
     }
 
-    // DTO-uri simple pentru cererea HTTP
+    // Simple DTOs for HTTP request
     public class OrderRequestDto
     {
         public string CustomerId { get; set; }

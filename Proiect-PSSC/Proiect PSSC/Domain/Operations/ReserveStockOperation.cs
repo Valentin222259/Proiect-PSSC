@@ -3,13 +3,16 @@
 // This operation transforms ValidatedOrder to StockReservedOrder
 //
 // Dependencies:
+// - Func<string, int> getAvailableStock (passed via constructor): Returns available stock quantity for a product
 // - Func<string, int, string> reserveStock (passed via constructor): Reserves stock and returns reservationId (productId, quantity) => reservationId
 //
 // Business logic:
 // - Create empty error list
 // - Create list to collect reservation IDs
 // - For each OrderItem in ValidatedOrder.Items:
-//   - Call reserveStock(item.ProductId.ToString(), item.Quantity)
+//   - First, check available stock using getAvailableStock(item.ProductId.ToString())
+//   - If available stock < item.Quantity, add error: "Insufficient stock for product ({item.ProductId}): requested {item.Quantity}, available {availableStock}"
+//   - If sufficient stock, call reserveStock(item.ProductId.ToString(), item.Quantity)
 //   - If reservation fails (returns null or empty string), add error: "Failed to reserve stock for product ({item.ProductId})"
 //   - If succeeds, add returned reservationId to list
 // - If any errors exist, return new InvalidOrder(errors)
@@ -21,21 +24,22 @@
 // Return either StockReservedOrder or InvalidOrder based on reservation results
 //
 // Constructor signature:
-// internal ReserveStockOperation(Func<string, int, string> reserveStock)
+// internal ReserveStockOperation(Func<string, int> getAvailableStock, Func<string, int, string> reserveStock)
 
 using System;
 using System.Collections.Generic;
 using Domain.Models.Entities;
-using Domain.Operations.Base;
 
-namespace Domain.Operations.Order
+namespace Domain.Operations 
 {
     internal sealed class ReserveStockOperation : OrderOperation
     {
+        private readonly Func<string, int> getAvailableStock;
         private readonly Func<string, int, string> reserveStock;
 
-        internal ReserveStockOperation(Func<string, int, string> reserveStock)
+        internal ReserveStockOperation(Func<string, int> getAvailableStock, Func<string, int, string> reserveStock)
         {
+            this.getAvailableStock = getAvailableStock ?? throw new ArgumentNullException(nameof(getAvailableStock));
             this.reserveStock = reserveStock ?? throw new ArgumentNullException(nameof(reserveStock));
         }
 
@@ -55,6 +59,27 @@ namespace Domain.Operations.Order
                 }
 
                 string productIdStr = item.ProductId.ToString();
+                
+                // Step 1: Check availability first
+                int availableStock;
+                try
+                {
+                    availableStock = getAvailableStock(productIdStr);
+                }
+                catch (Exception ex)
+                {
+                    errors.Add($"Failed to check stock for product ({productIdStr}): {ex.Message}");
+                    continue;
+                }
+
+                // Step 2: Validate sufficient stock
+                if (availableStock < item.Quantity)
+                {
+                    errors.Add($"Insufficient stock for product ({productIdStr}): requested {item.Quantity}, available {availableStock}");
+                    continue;
+                }
+
+                // Step 3: Reserve stock only if sufficient
                 string reservationId;
                 try
                 {

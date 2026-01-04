@@ -35,11 +35,6 @@ namespace Domain.Models.ValueObjects
             Country = country;
         }
 
-        /// <summary>
-        /// Attempts to parse input in the format "Street|City|PostalCode|Country".
-        /// Returns false when input is null/empty, malformed, or fails validation.
-        /// Example input: "123 Main St|New York|10001|USA"
-        /// </summary>
         public static bool TryParse(string? input, out Address address)
         {
             address = default!;

@@ -1,4 +1,4 @@
-using Domain.Models.ValueObjects;
+﻿using Domain.Models.ValueObjects;
 using Domain.Workflows;
 using Microsoft.EntityFrameworkCore;
 using Proiect_PSSC.Data;
@@ -10,10 +10,13 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddControllersWithViews();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+// Register all workflows
 builder.Services.AddTransient<PlaceOrderWorkflow>();
+builder.Services.AddTransient<GenerateInvoiceWorkflow>();      
+builder.Services.AddTransient<PrepareShipmentWorkflow>();      
 
 var app = builder.Build();
 

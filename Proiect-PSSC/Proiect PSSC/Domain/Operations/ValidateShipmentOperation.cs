@@ -1,49 +1,24 @@
-// Create ValidateShipmentOperation following the pattern from copilot-instructions.md
-//
-// This operation transforms UnvalidatedShipment to either ValidatedShipment or InvalidShipment
+// Validates UnvalidatedShipment -> ValidatedShipment or InvalidShipment
 //
 // Dependencies:
-// - Func<string, bool> orderExists (passed via constructor): Checks if order exists and is ready for shipment
-// - Func<string, bool> customerExists (passed via constructor): Checks if customer exists in database
-// - Func<string, bool> productExists (passed via constructor): Checks if product exists in inventory
+// - Func<string, bool> orderExists: Checks if order exists and is ready for shipment
+// - Func<string, bool> customerExists: Checks if customer exists
+// - Func<string, bool> productExists: Checks if product exists
 //
-// Business logic:
-// - Create empty error list
-// - Parse orderId to OrderId using OrderId.TryParse
-// - If parsing fails, add error: "Invalid order ID ({orderId})"
-// - If parsing succeeds, check if order exists using orderExists(orderId)
-// - If not exists, add error: "Order not found or not ready for shipment ({orderId})"
-// - Parse customerId to CustomerId using CustomerId.TryParse
-// - If parsing fails, add error: "Invalid customer ID ({customerId})"
-// - If parsing succeeds, check if customer exists using customerExists(customerId)
-// - If not exists, add error: "Customer not found ({customerId})"
-// - Parse deliveryAddress to Address using Address.TryParse
-// - If parsing fails, add error: "Invalid delivery address"
-// - Create list for validated ShipmentItems
-// - For each item in unvalidated items:
-//   - Parse productId to ProductId using ProductId.TryParse
-//   - If parsing fails, add error: "Invalid product ID ({item.ProductId})"
-//   - If parsing succeeds, check if product exists using productExists(productId)
-//   - If not exists, add error: "Product not found ({item.ProductId})"
-//   - Validate quantity > 0, if not add error: "Invalid quantity for product ({item.ProductId})"
-//   - Add new ShipmentItem(productId, quantity) to validated items list
-// - If any errors exist, return new InvalidShipment(errors)
-// - If no errors, return new ValidatedShipment(orderId, customerId, deliveryAddress, validatedItems)
-//
-// Override OnUnvalidated method
-// Return either ValidatedShipment or InvalidShipment based on validation results
-//
-// Constructor signature:
-// internal ValidateShipmentOperation(Func<string, bool> orderExists, Func<string, bool> customerExists, Func<string, bool> productExists)
+// Validation steps:
+// 1. Parse and validate OrderId
+// 2. Parse and validate CustomerId
+// 3. Parse and validate DeliveryAddress
+// 4. Validate each shipment item (productId, quantity)
+// 5. Return ValidatedShipment or InvalidShipment with errors
 
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using Domain.Models.Entities;
 using Domain.Models.ValueObjects;
-using Domain.Operations.Base;
 
-namespace Domain.Operations.Shipment
+namespace Domain.Operations
 {
     internal sealed class ValidateShipmentOperation : ShipmentOperation
     {
@@ -67,7 +42,7 @@ namespace Domain.Operations.Shipment
 
             var errors = new List<string>();
 
-            // OrderId parsing & existence
+            // OrderId validation
             OrderId? parsedOrderId = null;
             if (!OrderId.TryParse(unvalidated.OrderId, out var orderId))
             {
@@ -82,7 +57,7 @@ namespace Domain.Operations.Shipment
                 }
             }
 
-            // CustomerId parsing & existence
+            // CustomerId validation
             CustomerId? parsedCustomerId = null;
             if (!CustomerId.TryParse(unvalidated.CustomerId, out var customerId))
             {
@@ -97,7 +72,7 @@ namespace Domain.Operations.Shipment
                 }
             }
 
-            // Address parsing
+            // Address validation
             Address? parsedAddress = null;
             if (!Address.TryParse(unvalidated.DeliveryAddress, out var address))
             {
@@ -118,22 +93,20 @@ namespace Domain.Operations.Shipment
                     continue;
                 }
 
-                var rawProductId = raw.ProductId ?? string.Empty;
-
-                if (!ProductId.TryParse(rawProductId, out var parsedProductId))
+                if (!ProductId.TryParse(raw.ProductId, out var parsedProductId))
                 {
-                    errors.Add($"Invalid product ID ({rawProductId})");
+                    errors.Add($"Invalid product ID ({raw.ProductId})");
                     continue;
                 }
 
-                if (!productExists(rawProductId))
+                if (!productExists(raw.ProductId))
                 {
-                    errors.Add($"Product not found ({rawProductId})");
+                    errors.Add($"Product not found ({raw.ProductId})");
                 }
 
                 if (raw.Quantity <= 0)
                 {
-                    errors.Add($"Invalid quantity for product ({rawProductId})");
+                    errors.Add($"Invalid quantity for product ({raw.ProductId})");
                     continue;
                 }
 

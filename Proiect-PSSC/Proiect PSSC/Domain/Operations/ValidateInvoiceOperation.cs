@@ -1,56 +1,25 @@
-// Create ValidateInvoiceOperation following the pattern from copilot-instructions.md
-//
-// This operation transforms UnvalidatedInvoice to either ValidatedInvoice or InvalidInvoice
+// Validates UnvalidatedInvoice -> ValidatedInvoice or InvalidInvoice
 //
 // Dependencies:
-// - Func<string, bool> orderExists (passed via constructor): Checks if order exists in database
-// - Func<string, bool> customerExists (passed via constructor): Checks if customer exists in database
-// - Func<string, bool> productExists (passed via constructor): Checks if product exists in inventory
+// - Func<string, bool> orderExists: Checks if order exists
+// - Func<string, bool> customerExists: Checks if customer exists
+// - Func<string, bool> productExists: Checks if product exists
 //
-// Business logic:
-// - Create empty error list
-// - Parse orderId to OrderId using OrderId.TryParse
-// - If parsing fails, add error: "Invalid order ID ({orderId})"
-// - If parsing succeeds, check if order exists using orderExists(orderId)
-// - If not exists, add error: "Order not found ({orderId})"
-// - Parse customerId to CustomerId using CustomerId.TryParse
-// - If parsing fails, add error: "Invalid customer ID ({customerId})"
-// - If parsing succeeds, check if customer exists using customerExists(customerId)
-// - If not exists, add error: "Customer not found ({customerId})"
-// - Parse billingAddress to Address using Address.TryParse
-// - If parsing fails, add error: "Invalid billing address"
-// - Create list for validated InvoiceItems
-// - For each item in unvalidated items:
-//   - Parse productId to ProductId using ProductId.TryParse
-//   - If parsing fails, add error: "Invalid product ID ({item.ProductId})"
-//   - If parsing succeeds, check if product exists using productExists(productId)
-//   - If not exists, add error: "Product not found ({item.ProductId})"
-//   - Validate quantity > 0, if not add error: "Invalid quantity for product ({item.ProductId})"
-//   - Parse unitPrice string to Money using Money.TryParse
-//   - If parsing fails, add error: "Invalid unit price for product ({item.ProductId})"
-//   - Calculate lineTotal = new Money(quantity * unitPrice.Amount, unitPrice.Currency)
-//   - Add new InvoiceItem(productId, quantity, unitPrice, lineTotal) to validated items list
-// - Parse totalAmount string to Money using Money.TryParse
-// - If parsing fails, add error: "Invalid total amount"
-// - Calculate expected total by summing all lineTotal values
-// - If totalAmount doesn't match expected total, add error: "Total amount mismatch: expected {expectedTotal}, got {totalAmount}"
-// - If any errors exist, return new InvalidInvoice(errors)
-// - If no errors, return new ValidatedInvoice(orderId, customerId, validatedItems, totalAmount, billingAddress)
-//
-// Override OnUnvalidated method
-// Return either ValidatedInvoice or InvalidInvoice based on validation results
-//
-// Constructor signature:
-// internal ValidateInvoiceOperation(Func<string, bool> orderExists, Func<string, bool> customerExists, Func<string, bool> productExists)
+// Validation steps:
+// 1. Parse and validate OrderId
+// 2. Parse and validate CustomerId
+// 3. Parse and validate BillingAddress
+// 4. Validate each invoice item (productId, quantity, unitPrice)
+// 5. Calculate and verify total amount matches sum of line totals
+// 6. Return ValidatedInvoice or InvalidInvoice with errors
 
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using Domain.Models.Entities;
 using Domain.Models.ValueObjects;
-using Domain.Operations.Base;
 
-namespace Domain.Operations.Invoice
+namespace Domain.Operations
 {
     internal sealed class ValidateInvoiceOperation : InvoiceOperation
     {
@@ -74,7 +43,7 @@ namespace Domain.Operations.Invoice
 
             var errors = new List<string>();
 
-            // OrderId parse & existence
+            // OrderId validation
             OrderId? parsedOrderId = null;
             if (!OrderId.TryParse(unvalidated.OrderId, out var orderId))
             {
@@ -87,7 +56,7 @@ namespace Domain.Operations.Invoice
                     errors.Add($"Order not found ({unvalidated.OrderId})");
             }
 
-            // CustomerId parse & existence
+            // CustomerId validation
             CustomerId? parsedCustomerId = null;
             if (!CustomerId.TryParse(unvalidated.CustomerId, out var customerId))
             {
@@ -100,7 +69,7 @@ namespace Domain.Operations.Invoice
                     errors.Add($"Customer not found ({unvalidated.CustomerId})");
             }
 
-            // Billing address parse
+            // BillingAddress validation
             Address? parsedAddress = null;
             if (!Address.TryParse(unvalidated.BillingAddress, out var address))
             {
@@ -111,7 +80,7 @@ namespace Domain.Operations.Invoice
                 parsedAddress = address;
             }
 
-            // Items
+            // Items validation
             var validatedItems = new List<InvoiceItem>();
             foreach (var raw in unvalidated.Items ?? Enumerable.Empty<UnvalidatedInvoiceItem>())
             {
@@ -121,42 +90,34 @@ namespace Domain.Operations.Invoice
                     continue;
                 }
 
-                var rawProductId = raw.ProductId ?? string.Empty;
-
-                // ProductId parse
-                if (!ProductId.TryParse(rawProductId, out var parsedProductId))
+                if (!ProductId.TryParse(raw.ProductId, out var productId))
                 {
-                    errors.Add($"Invalid product ID ({rawProductId})");
+                    errors.Add($"Invalid product ID ({raw.ProductId})");
                     continue;
                 }
 
-                // Product existence
-                if (!productExists(rawProductId))
+                if (!productExists(raw.ProductId))
                 {
-                    errors.Add($"Product not found ({rawProductId})");
+                    errors.Add($"Product not found ({raw.ProductId})");
                 }
 
-                // Quantity validation
                 if (raw.Quantity <= 0)
                 {
-                    errors.Add($"Invalid quantity for product ({rawProductId})");
+                    errors.Add($"Invalid quantity for product ({raw.ProductId})");
                     continue;
                 }
 
-                // Unit price parsing
                 if (!Money.TryParse(raw.UnitPrice, out var unitPrice))
                 {
-                    errors.Add($"Invalid unit price for product ({rawProductId})");
+                    errors.Add($"Invalid unit price for product ({raw.ProductId})");
                     continue;
                 }
 
-                // Line total
                 var lineTotal = Money.Create(unitPrice.Amount * raw.Quantity, unitPrice.Currency);
-
-                validatedItems.Add(new InvoiceItem(parsedProductId, raw.Quantity, unitPrice, lineTotal));
+                validatedItems.Add(new InvoiceItem(productId, raw.Quantity, unitPrice, lineTotal));
             }
 
-            // Total amount parsing
+            // Total amount validation
             Money? parsedTotalAmount = null;
             if (!Money.TryParse(unvalidated.TotalAmount, out var totalAmount))
             {
@@ -167,12 +128,11 @@ namespace Domain.Operations.Invoice
                 parsedTotalAmount = totalAmount;
             }
 
-            // Expected total calculation and comparison (only if line items parsed)
+            // Verify total matches
             if (validatedItems.Any() && parsedTotalAmount != null)
             {
                 var expectedAmount = validatedItems.Sum(i => i.LineTotal.Amount);
-                // compare amounts directly (decimals). currency already validated on line totals.
-                if (parsedTotalAmount.Amount != expectedAmount || !string.Equals(parsedTotalAmount.Currency, validatedItems.First().LineTotal.Currency, StringComparison.OrdinalIgnoreCase))
+                if (parsedTotalAmount.Amount != expectedAmount)
                 {
                     var expectedMoney = Money.Create(expectedAmount, parsedTotalAmount.Currency);
                     errors.Add($"Total amount mismatch: expected {expectedMoney}, got {parsedTotalAmount}");
@@ -182,7 +142,6 @@ namespace Domain.Operations.Invoice
             if (errors.Any())
                 return new InvalidInvoice(errors);
 
-            // All good
             return new ValidatedInvoice(parsedOrderId!, parsedCustomerId!, validatedItems, parsedTotalAmount!, parsedAddress!);
         }
     }

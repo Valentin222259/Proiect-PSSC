@@ -32,7 +32,7 @@
 using System;
 using Domain.Models.Entities;
 
-namespace Domain.Operations.Base
+namespace Domain.Operations 
 {
     internal abstract class OrderOperation : DomainOperation<IOrder, object, IOrder>
     {

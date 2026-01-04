@@ -1,4 +1,4 @@
-// Create ValidateOrderOperation following the pattern from copilot-instructions.md
+﻿// Create ValidateOrderOperation following the pattern from copilot-instructions.md
 //
 // This operation transforms UnvalidatedOrder to either ValidatedOrder or InvalidOrder
 //
@@ -38,9 +38,8 @@ using System.Collections.Generic;
 using System.Linq;
 using Domain.Models.Entities;
 using Domain.Models.ValueObjects;
-using Domain.Operations.Base;
 
-namespace Domain.Operations.Order
+namespace Domain.Operations
 {
     internal sealed class ValidateOrderOperation : OrderOperation
     {
@@ -117,7 +116,7 @@ namespace Domain.Operations.Order
                     continue;
                 }
 
-                // Unit price � mocked for now
+                // Unit price – mocked for now
                 var unitPrice = Money.Create(10.00m, "USD");
 
                 validatedItems.Add(new OrderItem(parsedProductId, raw.Quantity, unitPrice));

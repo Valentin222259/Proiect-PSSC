@@ -36,10 +36,7 @@ using Domain.Models.ValueObjects;
 
 namespace Domain.Models.Entities
 {
-    // Interface at namespace level
     public interface IInvoice { }
-
-    // Helper to create IReadOnlyCollection<T> from IEnumerable<T>
     internal static class InvoiceHelpers
     {
         internal static IReadOnlyCollection<T> ToReadOnly<T>(IEnumerable<T>? items)
