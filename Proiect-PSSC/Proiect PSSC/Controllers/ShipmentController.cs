@@ -4,6 +4,7 @@ using Domain.Models.Entities;
 using Domain.Models.Commands;
 using static Domain.Events.ShipmentDeliveredEvent;
 using Proiect_PSSC.Data;
+using Proiect_PSSC.DTOs;
 using Domain.Models.ValueObjects;
 using System;
 using System.Collections.Generic;
@@ -29,6 +30,15 @@ namespace Proiect_PSSC.Controllers
         [HttpPost("prepare-shipment")]
         public async Task<IActionResult> PrepareShipment([FromBody] ShipmentRequestDto request)
         {
+            // Validate AddressDto
+            if (request.DeliveryAddress == null)
+            {
+                return BadRequest(new { Message = "Delivery address is required." });
+            }
+
+            // Convert AddressDto to pipe-delimited string format
+            var addressString = request.DeliveryAddress.ToAddressString();
+
             // 1. Transform DTO to UnvalidatedShipment
             var unvalidatedItems = new List<UnvalidatedShipmentItem>();
             foreach (var item in request.Items)
@@ -40,13 +50,13 @@ namespace Proiect_PSSC.Controllers
                 request.OrderId,
                 request.CustomerId,
                 unvalidatedItems,
-                request.DeliveryAddress
+                addressString
             );
 
             var command = new PrepareShipmentCommand(unvalidatedShipment);
 
             // 2. Mock dependencies
-            Func<string, bool> checkOrder = (id) => true; // ✅ FIXED
+            Func<string, bool> checkOrder = (id) => true;
             Func<string, bool> checkCustomer = (id) => id.StartsWith("CUST");
             Func<string, bool> checkProduct = (id) => true;
             Func<string> generateTrackingNumber = () => $"TRK-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString().Substring(0, 8).ToUpper()}";
@@ -119,7 +129,7 @@ namespace Proiect_PSSC.Controllers
     {
         public string OrderId { get; set; }
         public string CustomerId { get; set; }
-        public string DeliveryAddress { get; set; }
+        public AddressDto DeliveryAddress { get; set; }
         public List<ShipmentItemDto> Items { get; set; }
     }
 

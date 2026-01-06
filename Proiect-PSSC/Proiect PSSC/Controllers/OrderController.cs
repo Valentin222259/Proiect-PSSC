@@ -4,6 +4,7 @@ using Domain.Models.Entities;
 using Domain.Models.Commands;
 using static Domain.Events.OrderPlacedEvent;
 using Proiect_PSSC.Data;
+using Proiect_PSSC.DTOs;
 using Domain.Models.ValueObjects;
 using System;
 using System.Collections.Generic;
@@ -28,6 +29,15 @@ namespace Proiect_PSSC.Controllers
         [HttpPost("place-order")]
         public async Task<IActionResult> PlaceOrder([FromBody] OrderRequestDto request)
         {
+            // Validate AddressDto
+            if (request.DeliveryAddress == null)
+            {
+                return BadRequest(new { Message = "Delivery address is required." });
+            }
+
+            // Convert AddressDto to pipe-delimited string format
+            var addressString = request.DeliveryAddress.ToAddressString();
+
             // 1. Transform DTO to UnvalidatedOrder
             var unvalidatedItems = new List<UnvalidatedOrderItem>();
             foreach (var item in request.Items)
@@ -38,7 +48,7 @@ namespace Proiect_PSSC.Controllers
             var unvalidatedOrder = new UnvalidatedOrder(
                 request.CustomerId,
                 unvalidatedItems,
-                request.DeliveryAddress
+                addressString
             );
 
             var command = new PlaceOrderCommand(unvalidatedOrder);
@@ -120,7 +130,7 @@ namespace Proiect_PSSC.Controllers
     public class OrderRequestDto
     {
         public string CustomerId { get; set; }
-        public string DeliveryAddress { get; set; }
+        public AddressDto DeliveryAddress { get; set; }
         public List<OrderItemDto> Items { get; set; }
     }
 

@@ -4,6 +4,7 @@ using Domain.Models.Entities;
 using Domain.Models.Commands;
 using static Domain.Events.InvoiceGeneratedEvent;
 using Proiect_PSSC.Data;
+using Proiect_PSSC.DTOs;
 using Domain.Models.ValueObjects;
 using System;
 using System.Collections.Generic;
@@ -29,25 +30,58 @@ namespace Proiect_PSSC.Controllers
         [HttpPost("generate-invoice")]
         public async Task<IActionResult> GenerateInvoice([FromBody] InvoiceRequestDto request)
         {
+            // Validate AddressDto
+            if (request.BillingAddress == null)
+            {
+                return BadRequest(new { Message = "Billing address is required." });
+            }
+
+            // Validate items
+            if (request.Items == null || request.Items.Count == 0)
+            {
+                return BadRequest(new { Message = "At least one item is required." });
+            }
+
+            // Convert AddressDto to pipe-delimited string format
+            var addressString = request.BillingAddress.ToAddressString();
+
             // 1. Transform DTO to UnvalidatedInvoice
             var unvalidatedItems = new List<UnvalidatedInvoiceItem>();
+            decimal calculatedTotal = 0;
+            const string defaultCurrency = "USD";
+
             foreach (var item in request.Items)
             {
-                unvalidatedItems.Add(new UnvalidatedInvoiceItem(item.ProductId, item.Quantity, item.UnitPrice));
+                // Parse unit price
+                if (!decimal.TryParse(item.UnitPrice, out decimal unitPrice))
+                {
+                    return BadRequest(new { Message = $"Invalid unit price for product {item.ProductId}" });
+                }
+
+                // Calculate line total
+                decimal lineTotal = unitPrice * item.Quantity;
+                calculatedTotal += lineTotal;
+
+                // Format unit price with currency (required by Money.Parse)
+                var unitPriceWithCurrency = $"{unitPrice:F2} {defaultCurrency}";
+                unvalidatedItems.Add(new UnvalidatedInvoiceItem(item.ProductId, item.Quantity, unitPriceWithCurrency));
             }
+
+            // Format calculated total with currency
+            var totalAmountString = $"{calculatedTotal:F2} {defaultCurrency}";
 
             var unvalidatedInvoice = new UnvalidatedInvoice(
                 request.OrderId,
                 request.CustomerId,
                 unvalidatedItems,
-                request.TotalAmount,
-                request.BillingAddress
+                totalAmountString,
+                addressString
             );
 
             var command = new GenerateInvoiceCommand(unvalidatedInvoice);
 
-            // 2. Mock dependencies - FIX: Use simpler checks that don't access database with value objects
-            Func<string, bool> checkOrder = (id) => true; // ✅ FIXED - Just return true for now
+            // 2. Mock dependencies
+            Func<string, bool> checkOrder = (id) => true;
             Func<string, bool> checkCustomer = (id) => id.StartsWith("CUST");
             Func<string, bool> checkProduct = (id) => true;
             Func<string> generateInvoiceNumber = () => $"INV-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString().Substring(0, 8).ToUpper()}";
@@ -66,7 +100,7 @@ namespace Proiect_PSSC.Controllers
             // 4. Process result and save to database if successful
             return result switch
             {
-                InvoiceGeneratedSucceededEvent success => await SaveInvoiceAndReturnResponse(success),
+                InvoiceGeneratedSucceededEvent success => await SaveInvoiceAndReturnResponse(success, calculatedTotal),
                 InvoiceGeneratedFailedEvent failed => BadRequest(new
                 {
                     Message = "Generarea facturii a esuat.",
@@ -76,7 +110,7 @@ namespace Proiect_PSSC.Controllers
             };
         }
 
-        private async Task<IActionResult> SaveInvoiceAndReturnResponse(InvoiceGeneratedSucceededEvent successEvent)
+        private async Task<IActionResult> SaveInvoiceAndReturnResponse(InvoiceGeneratedSucceededEvent successEvent, decimal calculatedTotal)
         {
             try
             {
@@ -94,6 +128,7 @@ namespace Proiect_PSSC.Controllers
                     OrderId = sentInvoice.OrderId.Value,
                     CustomerId = sentInvoice.CustomerId.Value,
                     TotalAmount = $"{sentInvoice.TotalAmount.Amount} {sentInvoice.TotalAmount.Currency}",
+                    CalculatedTotal = calculatedTotal,
                     GeneratedAt = sentInvoice.GeneratedAt,
                     SentAt = sentInvoice.SentAt,
                     SentTo = sentInvoice.SentTo,
@@ -117,8 +152,7 @@ namespace Proiect_PSSC.Controllers
     {
         public string OrderId { get; set; }
         public string CustomerId { get; set; }
-        public string BillingAddress { get; set; }
-        public string TotalAmount { get; set; }
+        public AddressDto BillingAddress { get; set; }
         public List<InvoiceItemDto> Items { get; set; }
     }
 
@@ -127,5 +161,14 @@ namespace Proiect_PSSC.Controllers
         public string ProductId { get; set; }
         public int Quantity { get; set; }
         public string UnitPrice { get; set; }
+    }
+
+    public static class AddressDtoExtensions
+    {
+        public static string ToAddressString(this AddressDto address)
+        {
+            // Pipe-delimited format: Street|City|PostalCode|Country
+            return $"{address.Street}|{address.City}|{address.PostalCode}|{address.Country}";
+        }
     }
 }
