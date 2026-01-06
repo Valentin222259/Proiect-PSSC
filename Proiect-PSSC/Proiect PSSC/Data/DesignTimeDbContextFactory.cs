@@ -21,7 +21,7 @@ namespace Proiect_PSSC.Data
             // Get connection string
             var connectionString = configuration.GetConnectionString("DefaultConnection");
             
-            // Configure SQL Server
+            // Configure SQL Server with TrustServerCertificate to bypass SSL validation
             optionsBuilder.UseSqlServer(connectionString);
 
             return new ApplicationDbContext(optionsBuilder.Options);
