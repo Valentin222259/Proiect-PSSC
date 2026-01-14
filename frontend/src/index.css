@@ -1,27 +1,21 @@
 @import "tailwindcss";
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&family=Plus+Jakarta+Sans:wght@700;800&display=swap');
 
-@import "tailwindcss"
-
 :root {
   --bg: #0b0d17;
   --text: white;
   --nav-bg: rgba(255, 255, 255, 0.05);
   --input-bg: rgba(255, 255, 255, 0.1);
   --card-bg: rgba(255, 255, 255, 0.03);
-  --accent: #3b82f6; /* Albastru profesional */
+  --accent: #3b82f6;
   font-family: 'Inter', sans-serif;
   background-color: #07080d;
 }
 
 @theme {
-
---font-family-barlow-condensed: "Barlow Condensed", sans-serif;
-
---font-family-bellefair: "Bellefair", serif;
-
---font-family-barlow: "Barlow", sans-serif;
-
+  --font-family-barlow-condensed: "Barlow Condensed", sans-serif;
+  --font-family-bellefair: "Bellefair", serif;
+  --font-family-barlow: "Barlow", sans-serif;
 }
 
 body {
