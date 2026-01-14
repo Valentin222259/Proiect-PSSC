@@ -1,37 +1,68 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { OrderApi } from "../api/client";
 import toast from "react-hot-toast";
 import { motion } from "framer-motion";
 
 export const OrderPage = () => {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<any>({});
   const [order, setOrder] = useState({
-    customerId: "", // Golit
+    customerId: "",
     deliveryAddress: {
       street: "",
       city: "",
       postalCode: "",
       country: "Romania",
     },
-    items: [{ productId: "", quantity: 1 }], // Golit
+    items: [{ productId: "", quantity: 1 }],
   });
 
-  const handleSubmit = async () => {
+  const validate = () => {
+    let newErrors: any = {};
+    if (!order.customerId.startsWith("CUST-"))
+      newErrors.customerId = "ID invalid (CUST-)";
+    if (!/^\d{6}$/.test(order.deliveryAddress.postalCode))
+      newErrors.postalCode = "Necesită 6 cifre";
+    if (!order.items[0].productId.startsWith("PROD-"))
+      newErrors.productId = "ID invalid (PROD-)";
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handlePlaceOrder = async () => {
+    if (!validate())
+      return toast.error("Verifică toate câmpurile marcate cu roșu!");
+
     setLoading(true);
     try {
       const response = await OrderApi.placeOrder(order);
+      localStorage.setItem("lastOrderId", response.data.orderId);
 
-      // Luăm ID-ul primit (care zici că e CUST-123)
-      const rawId = response.data.orderId;
+      const history = JSON.parse(localStorage.getItem("ordersHistory") || "[]");
+      const newEntry = {
+        id: response.data.orderId,
+        customer: order.customerId,
+        status: "Plasată",
+        date: new Date().toLocaleString("ro-RO", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+      };
+      localStorage.setItem(
+        "ordersHistory",
+        JSON.stringify([newEntry, ...history])
+      );
 
-      // Îl salvăm ca "ultimul ID" pentru a fi folosit automat în alte tab-uri
-      localStorage.setItem("lastOrderId", rawId);
-
-      toast.success(`Comandă reușită! ID salvat: ${rawId}`);
-    } catch (error: any) {
-      const errorMsg =
-        error.response?.data || "Eroare la conectarea cu serverul";
-      toast.error(errorMsg);
+      toast.success("Succes! Navigăm la facturare...");
+      setTimeout(() => navigate("/invoices"), 1000);
+    } catch (e) {
+      toast.error("Eroare server");
     } finally {
       setLoading(false);
     }
@@ -39,90 +70,68 @@ export const OrderPage = () => {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="p-12 max-w-4xl"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="p-10 max-w-6xl mx-auto"
     >
-      <header className="mb-10">
-        <h1 className="text-4xl font-black mb-2">Management Comenzi</h1>
-        <p className="text-white/40">
-          Înregistrează o comandă nouă în sistemul logistic.
-        </p>
-      </header>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* Secțiune Client & Adresă */}
-        <div className="space-y-6 bg-white/5 p-8 rounded-3xl border border-white/10">
-          <h3 className="text-lg font-bold border-b border-white/10 pb-4 mb-4">
-            Date Expediție
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Destinatar */}
+        <div className="lg:col-span-2 bg-[#11131f] p-10 rounded-[2.5rem] border border-white/10">
+          <h3 className="text-blue-500 font-bold text-[10px] uppercase mb-8 tracking-widest">
+            Logistica Destinație
           </h3>
-
-          <div className="space-y-4">
-            <div>
-              <label className="text-xs uppercase tracking-widest text-white/30 block mb-2 font-bold">
-                Client ID
-              </label>
-              <input
-                className="w-full bg-white/10 p-4 rounded-xl border border-white/10 focus:border-blue-500 outline-none transition-all"
-                value={order.customerId}
-                onChange={(e) =>
-                  setOrder({ ...order, customerId: e.target.value })
-                }
-              />
-            </div>
-
+          <div className="space-y-6">
+            <input
+              placeholder="ID Client (Ex: CUST-777)"
+              className={`w-full bg-white/5 p-4 rounded-xl border transition-all outline-none ${
+                errors.customerId
+                  ? "border-red-500 shadow-lg shadow-red-500/10"
+                  : "border-white/10 focus:border-blue-500"
+              }`}
+              onChange={(e) =>
+                setOrder({ ...order, customerId: e.target.value })
+              }
+            />
+            <input
+              placeholder="Adresă"
+              className="w-full bg-white/5 p-4 rounded-xl border border-white/10 outline-none"
+              onChange={(e) =>
+                setOrder({
+                  ...order,
+                  deliveryAddress: {
+                    ...order.deliveryAddress,
+                    street: e.target.value,
+                  },
+                })
+              }
+            />
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-xs uppercase tracking-widest text-white/30 block mb-2 font-bold">
-                  Oraș
-                </label>
-                <input
-                  className="w-full bg-white/10 p-4 rounded-xl border border-white/10 focus:border-blue-500 outline-none"
-                  value={order.deliveryAddress.city}
-                  onChange={(e) =>
-                    setOrder({
-                      ...order,
-                      deliveryAddress: {
-                        ...order.deliveryAddress,
-                        city: e.target.value,
-                      },
-                    })
-                  }
-                />
-              </div>
-              <div>
-                <label className="text-xs uppercase tracking-widest text-white/30 block mb-2 font-bold">
-                  Cod Poștal
-                </label>
-                <input
-                  className="w-full bg-white/10 p-4 rounded-xl border border-white/10 focus:border-blue-500 outline-none"
-                  value={order.deliveryAddress.postalCode}
-                  onChange={(e) =>
-                    setOrder({
-                      ...order,
-                      deliveryAddress: {
-                        ...order.deliveryAddress,
-                        postalCode: e.target.value,
-                      },
-                    })
-                  }
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="text-xs uppercase tracking-widest text-white/30 block mb-2 font-bold">
-                Stradă
-              </label>
               <input
-                className="w-full bg-white/10 p-4 rounded-xl border border-white/10 focus:border-blue-500 outline-none"
-                value={order.deliveryAddress.street}
+                placeholder="Oraș"
+                className="bg-white/5 p-4 rounded-xl border border-white/10 outline-none"
                 onChange={(e) =>
                   setOrder({
                     ...order,
                     deliveryAddress: {
                       ...order.deliveryAddress,
-                      street: e.target.value,
+                      city: e.target.value,
+                    },
+                  })
+                }
+              />
+              <input
+                placeholder="Cod Poștal (6 cifre)"
+                className={`bg-white/5 p-4 rounded-xl border outline-none ${
+                  errors.postalCode
+                    ? "border-red-500 shadow-lg shadow-red-500/10"
+                    : "border-white/10 focus:border-blue-500"
+                }`}
+                onChange={(e) =>
+                  setOrder({
+                    ...order,
+                    deliveryAddress: {
+                      ...order.deliveryAddress,
+                      postalCode: e.target.value,
                     },
                   })
                 }
@@ -131,58 +140,57 @@ export const OrderPage = () => {
           </div>
         </div>
 
-        {/* Secțiune Produse */}
-        <div className="space-y-6 bg-white/5 p-8 rounded-3xl border border-white/10 flex flex-col">
-          <h3 className="text-lg font-bold border-b border-white/10 pb-4 mb-4">
-            Articole Comandate
+        {/* Articol - CARD ÎMBUNĂTĂȚIT */}
+        <div className="bg-[#11131f] p-10 rounded-[2.5rem] border border-white/10 flex flex-col min-h-[450px]">
+          <h3 className="text-blue-500 font-bold text-[10px] uppercase mb-8 tracking-widest text-center">
+            Specificații Produs
           </h3>
 
-          <div className="space-y-4 flex-1">
-            {order.items.map((item, index) => (
-              <div key={index} className="flex gap-4 items-end">
-                <div className="flex-1">
-                  <label className="text-xs uppercase tracking-widest text-white/30 block mb-2 font-bold">
-                    Produs ID
-                  </label>
-                  <input
-                    className="w-full bg-white/10 p-4 rounded-xl border border-white/10 focus:border-blue-500 outline-none"
-                    value={item.productId}
-                    onChange={(e) => {
-                      const newItems = [...order.items];
-                      newItems[index].productId = e.target.value;
-                      setOrder({ ...order, items: newItems });
-                    }}
-                  />
-                </div>
-                <div className="w-24">
-                  <label className="text-xs uppercase tracking-widest text-white/30 block mb-2 font-bold">
-                    Cant.
-                  </label>
-                  <input
-                    type="number"
-                    className="w-full bg-white/10 p-4 rounded-xl border border-white/10 focus:border-blue-500 outline-none text-center"
-                    value={item.quantity}
-                    onChange={(e) => {
-                      const newItems = [...order.items];
-                      newItems[index].quantity = parseInt(e.target.value);
-                      setOrder({ ...order, items: newItems });
-                    }}
-                  />
-                </div>
-              </div>
-            ))}
+          <div className="flex-1 space-y-8">
+            <div>
+              <p className="text-[10px] font-black text-white/20 uppercase mb-2 ml-1">
+                Identificator Articol
+              </p>
+              <input
+                placeholder="Ex: PROD-101"
+                className={`w-full bg-white/5 p-4 rounded-xl border transition-all outline-none ${
+                  errors.productId
+                    ? "border-red-500 shadow-lg shadow-red-500/10"
+                    : "border-white/10 focus:border-blue-500"
+                }`}
+                onChange={(e) => {
+                  const n = [...order.items];
+                  n[0].productId = e.target.value;
+                  setOrder({ ...order, items: n });
+                }}
+              />
+            </div>
+
+            <div className="bg-white/5 p-6 rounded-2xl border border-white/5 text-center">
+              <p className="text-[10px] font-black text-white/20 uppercase mb-2">
+                Unități (Control Săgeți)
+              </p>
+              <input
+                type="number"
+                min="1"
+                onKeyDown={(e) => e.preventDefault()} // Blochează tastatura
+                className="w-full bg-transparent text-4xl font-black text-blue-500 outline-none text-center cursor-default select-none"
+                value={order.items[0].quantity}
+                onChange={(e) => {
+                  const n = [...order.items];
+                  n[0].quantity = parseInt(e.target.value);
+                  setOrder({ ...order, items: n });
+                }}
+              />
+            </div>
           </div>
 
           <button
-            onClick={handleSubmit}
+            onClick={handlePlaceOrder}
             disabled={loading}
-            className={`w-full p-5 rounded-2xl font-black text-lg transition-all transform active:scale-95 ${
-              loading
-                ? "bg-white/10 text-white/30 cursor-not-allowed"
-                : "bg-blue-600 hover:bg-blue-500 shadow-[0_10px_30px_rgba(37,99,235,0.3)]"
-            }`}
+            className="w-full py-6 bg-blue-600 rounded-2xl font-black text-xs tracking-widest hover:bg-blue-500 transition-all shadow-xl shadow-blue-600/20 mt-8"
           >
-            {loading ? "SE PROCESEAZĂ..." : "FINALIZEAZĂ COMANDA"}
+            {loading ? "SE SALVEAZĂ..." : "FINALIZEAZĂ ETAPA 1 →"}
           </button>
         </div>
       </div>

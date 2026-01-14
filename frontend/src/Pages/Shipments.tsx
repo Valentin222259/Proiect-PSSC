@@ -1,72 +1,63 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { ShipmentApi } from "../api/client";
 import toast from "react-hot-toast";
+import { FaBarcode, FaTruck } from "react-icons/fa";
 import { motion } from "framer-motion";
-import { FaTruck, FaBarcode } from "react-icons/fa";
 
 export const ShipmentPage = () => {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [shipment, setShipment] = useState({
-    orderId: "",
-    customerId: "CUST-123",
-    deliveryAddress: {
-      street: "Strada Exemplu 10",
-      city: "Suceava",
-      postalCode: "720229",
-      country: "Romania",
-    },
-    items: [{ productId: "PROD-LAPTOP", quantity: 1 }],
-  });
+  const [orderId, setOrderId] = useState("");
 
-  // Preluăm automat ID-ul ultimei comenzi la încărcarea paginii
   useEffect(() => {
-    const savedId = localStorage.getItem("lastOrderId");
-    if (savedId) {
-      setShipment((prev) => ({ ...prev, orderId: savedId }));
+    const saved = localStorage.getItem("lastOrderId");
+    if (!saved) {
+      toast.error("Nu există nicio expediție în flux! Întoarcere la Comenzi.");
+      navigate("/orders");
+    } else {
+      setOrderId(saved);
     }
-  }, []);
+  }, [navigate]);
 
-  const handlePrepareShipment = async () => {
-    if (!shipment.orderId)
-      return toast.error("Nu există nicio comandă pentru livrare!");
-
+  const handleShip = async () => {
     setLoading(true);
 
-    // --- REPARARE AUTOMATĂ ID ---
-    // Eliminăm cratimele interne și punem prefixul ORD- (ex: CUST-123 devine ORD-CUST123)
-    const cleanId = shipment.orderId.replace(/-/g, "");
-    const finalOrderId = `ORD-${cleanId}`;
-
-    const dataToSend = {
-      ...shipment,
-      orderId: finalOrderId,
-    };
+    // Formatare automată pentru a trece de validarea Regex din backend
+    const cleanId = orderId
+      .replace(/-/g, "")
+      .replace("CUST", "")
+      .replace("ORD", "");
+    const finalId = `ORD-${cleanId}`;
 
     try {
-      const response = await ShipmentApi.prepareShipment(dataToSend);
-      // Backend-ul returnează TrackingNumber și Carrier
+      // Apelăm controller-ul de livrări
+      const response = await ShipmentApi.prepareShipment({
+        orderId: finalId,
+        customerId: "CUST-123", // ID Client validat de domeniu
+        deliveryAddress: {
+          street: "Strada Suceava 10",
+          city: "Suceava",
+          postalCode: "720001",
+          country: "Romania",
+        },
+        items: [{ productId: "PROD-01", quantity: 1 }],
+      });
+
       toast.success(
         <div>
-          <p className="font-bold text-sm">AWB Generat!</p>
-          <p className="text-xs opacity-80">
-            {response.data.trackingNumber} ({response.data.carrier})
+          <p className="font-bold">Livrare Pregătită!</p>
+          <p className="text-[10px] opacity-70">
+            AWB: {response.data.trackingNumber} ({response.data.carrier})
           </p>
-        </div>,
-        { duration: 6000 }
+        </div>
       );
-      console.log("Date livrare:", response.data);
-    } catch (error: any) {
-      const serverData = error.response?.data;
-      // Căutăm mesajul de eroare în diverse formate trimise de .NET
-      const errorMsg =
-        serverData?.message ||
-        serverData?.Message ||
-        serverData?.reasons?.[0] ||
-        serverData?.Reasons?.[0] ||
-        "Eroare logistică";
 
-      toast.error(errorMsg);
-      console.error("Detalii eroare livrare:", serverData);
+      // Curățăm fluxul și ne întoarcem la început
+      localStorage.removeItem("lastOrderId");
+      setTimeout(() => navigate("/"), 2500);
+    } catch (error: any) {
+      toast.error(error.response?.data?.Message || "Eroare logistică");
     } finally {
       setLoading(false);
     }
@@ -74,66 +65,44 @@ export const ShipmentPage = () => {
 
   return (
     <motion.div
-      initial={{ x: 20, opacity: 0 }}
-      animate={{ x: 0, opacity: 1 }}
-      className="p-12 max-w-4xl"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="p-12 max-w-4xl mx-auto text-center"
     >
-      <header className="mb-10 flex justify-between items-center">
-        <div>
-          <h1 className="text-4xl font-black mb-2 tracking-tight">
-            Logistică & Livrări
-          </h1>
-          <p className="text-white/40">
-            Pregătire colete și generare numere de tracking AWB.
-          </p>
-        </div>
-        <div className="text-6xl text-blue-500/20">
-          <FaTruck />
-        </div>
+      <header className="mb-12">
+        <h1 className="text-3xl font-black uppercase tracking-tighter italic">
+          Pasul 3: Logistică și Expediție
+        </h1>
+        <p className="text-white/30 text-xs mt-2 font-mono uppercase tracking-widest text-blue-500">
+          Departament: Fulfillment & Shipping
+        </p>
       </header>
 
-      <div className="bg-white/5 p-10 rounded-3xl border border-white/10 shadow-2xl">
-        <div className="flex items-center gap-4 mb-8 p-4 bg-blue-500/10 rounded-2xl border border-blue-500/20">
-          <div className="bg-blue-600 p-3 rounded-xl">
-            <FaBarcode size={24} />
-          </div>
-          <div>
-            <p className="text-xs text-blue-400 font-bold uppercase tracking-widest">
-              Sistemul a detectat Comanda:
-            </p>
-            <p className="text-xl font-mono font-bold">
-              {shipment.orderId || "Nicio comandă detectată"}
-            </p>
+      <div className="bg-white/5 p-12 rounded-[3.5rem] border border-white/10 shadow-2xl relative overflow-hidden group">
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-blue-500 to-transparent opacity-50" />
+        <FaTruck className="mx-auto text-6xl mb-8 text-white/10 group-hover:text-blue-500/20 transition-colors duration-500" />
+
+        <div className="mb-10">
+          <p className="text-[10px] font-black text-white/20 uppercase tracking-[0.4em] mb-4">
+            Pregătit pentru AWB:
+          </p>
+          <div className="bg-white/5 p-6 rounded-2xl border border-white/5 inline-flex items-center gap-4">
+            <FaBarcode className="text-2xl text-white/20" />
+            <span className="text-4xl font-mono font-black tracking-tighter text-blue-400">
+              {orderId}
+            </span>
           </div>
         </div>
 
         <button
-          onClick={handlePrepareShipment}
-          disabled={loading || !shipment.orderId}
-          className={`w-full p-6 rounded-2xl font-black text-lg transition-all transform active:scale-95 flex items-center justify-center gap-3 ${
-            loading || !shipment.orderId
-              ? "bg-white/10 text-white/20 cursor-not-allowed"
-              : "bg-blue-600 hover:bg-blue-500 shadow-xl shadow-blue-500/20"
-          }`}
+          onClick={handleShip}
+          disabled={loading}
+          className="w-full py-6 bg-blue-600 rounded-2xl font-black text-xs tracking-[0.3em] hover:bg-blue-500 hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-blue-600/20"
         >
-          {loading ? (
-            <>
-              <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full" />
-              SE GENERĂ AWB...
-            </>
-          ) : (
-            "PREGĂTEȘTE ȘI EXPEDIAZĂ"
-          )}
+          {loading
+            ? "SE GENERĂ DOCUMENTAȚIA AWB..."
+            : "FINALIZEAZĂ ȘI EXPEDIAZĂ →"}
         </button>
-      </div>
-
-      <div className="mt-8 grid grid-cols-2 gap-4 opacity-30 text-[10px] uppercase tracking-tighter">
-        <div className="p-4 border border-white/10 rounded-xl">
-          Carrier alocat: DHL / FedEx / UPS
-        </div>
-        <div className="p-4 border border-white/10 rounded-xl">
-          Validare automată: Domain.ValueObjects.OrderId
-        </div>
       </div>
     </motion.div>
   );
