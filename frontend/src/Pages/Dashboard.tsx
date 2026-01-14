@@ -1,6 +1,12 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { FaHistory, FaBox, FaFileInvoiceDollar, FaTruck } from "react-icons/fa";
+import {
+  FaHistory,
+  FaBox,
+  FaFileInvoiceDollar,
+  FaTruck,
+  FaTrash,
+} from "react-icons/fa";
 
 export const Dashboard = () => {
   const [orders, setOrders] = useState<any[]>([]);
@@ -9,6 +15,12 @@ export const Dashboard = () => {
     const history = JSON.parse(localStorage.getItem("ordersHistory") || "[]");
     setOrders(history);
   }, []);
+
+  const handleDelete = (id: string) => {
+    const updatedOrders = orders.filter((order) => order.id !== id);
+    setOrders(updatedOrders);
+    localStorage.setItem("ordersHistory", JSON.stringify(updatedOrders));
+  };
 
   return (
     <motion.div
@@ -61,6 +73,7 @@ export const Dashboard = () => {
               <th className="p-5 text-center">Client ID</th>
               <th className="p-5 text-center">Status Flux</th>
               <th className="p-5 text-center">Data & Ora Înregistrării</th>
+              <th className="p-5 text-center">Acțiuni</th> {/* Coloană nouă */}
             </tr>
           </thead>
           <tbody className="divide-y divide-white/5 font-mono">
@@ -73,18 +86,23 @@ export const Dashboard = () => {
                   {order.customer}
                 </td>
                 <td className="p-5 text-center">
-                  <span
-                    className={`px-2 py-0.5 rounded text-[9px] font-black uppercase border ${
-                      order.status === "Plasată"
-                        ? "bg-blue-500/10 text-blue-500 border-blue-500/20"
-                        : "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
-                    }`}
-                  >
-                    {order.status}
+                  {/* Forțăm afișarea statusului "Plasată" cu stilul albastru */}
+                  <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase border bg-blue-500/10 text-blue-500 border-blue-500/20">
+                    Plasată
                   </span>
                 </td>
                 <td className="p-5 text-center text-white/30 text-[11px]">
                   {order.date}
+                </td>
+                <td className="p-5 text-center">
+                  {/* Butonul de ștergere */}
+                  <button
+                    onClick={() => handleDelete(order.id)}
+                    className="text-red-500 hover:text-red-400 transition-colors p-2"
+                    title="Șterge comanda"
+                  >
+                    <FaTrash size={14} />
+                  </button>
                 </td>
               </tr>
             ))}
