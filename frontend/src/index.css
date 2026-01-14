@@ -1,0 +1,22 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #0b0d17;
+  --text: white;
+  --nav-bg: rgba(255, 255, 255, 0.05);
+  --input-bg: rgba(255, 255, 255, 0.1);
+  --card-bg: rgba(255, 255, 255, 0.03);
+  --accent: #3b82f6; /* Albastru profesional */
+}
+
+@theme {
+  --color-brand-bg: var(--bg);
+  --color-brand-card: var(--card-bg);
+  --color-brand-accent: var(--accent);
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', sans-serif;
+}
