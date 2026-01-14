@@ -8,33 +8,35 @@ export const OrderPage = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<any>({});
+
+  // Inițializăm starea cu prefixele deja prezente în căsuțe
   const [order, setOrder] = useState({
-    customerId: "",
+    customerId: "CUST-",
     deliveryAddress: {
       street: "",
       city: "",
       postalCode: "",
       country: "Romania",
     },
-    items: [{ productId: "", quantity: 1 }],
+    items: [{ productId: "PROD-", quantity: 1 }],
   });
 
   const validate = () => {
     let newErrors: any = {};
-    if (!order.customerId.startsWith("CUST-"))
-      newErrors.customerId = "ID invalid (CUST-)";
+    // Verificăm dacă utilizatorul a introdus mai mult decât simplul prefix
+    if (order.customerId.length <= 5)
+      newErrors.customerId = "Introduceți cifrele după CUST-";
     if (!/^\d{6}$/.test(order.deliveryAddress.postalCode))
       newErrors.postalCode = "Necesită 6 cifre";
-    if (!order.items[0].productId.startsWith("PROD-"))
-      newErrors.productId = "ID invalid (PROD-)";
+    if (order.items[0].productId.length <= 5)
+      newErrors.productId = "Introduceți cifrele după PROD-";
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handlePlaceOrder = async () => {
-    if (!validate())
-      return toast.error("Verifică toate câmpurile marcate cu roșu!");
+    if (!validate()) return toast.error("Date incomplete!");
 
     setLoading(true);
     try {
@@ -46,20 +48,14 @@ export const OrderPage = () => {
         id: response.data.orderId,
         customer: order.customerId,
         status: "Plasată",
-        date: new Date().toLocaleString("ro-RO", {
-          day: "2-digit",
-          month: "2-digit",
-          year: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
+        date: new Date().toLocaleString("ro-RO"),
       };
       localStorage.setItem(
         "ordersHistory",
         JSON.stringify([newEntry, ...history])
       );
 
-      toast.success("Succes! Navigăm la facturare...");
+      toast.success("Comandă confirmată!");
       setTimeout(() => navigate("/invoices"), 1000);
     } catch (e) {
       toast.error("Eroare server");
@@ -72,109 +68,145 @@ export const OrderPage = () => {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="p-10 max-w-6xl mx-auto"
+      className="p-10 max-w-7xl mx-auto font-sans text-white"
     >
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Destinatar */}
-        <div className="lg:col-span-2 bg-[#11131f] p-10 rounded-[2.5rem] border border-white/10">
-          <h3 className="text-blue-500 font-bold text-[10px] uppercase mb-8 tracking-widest">
+      <h1 className="font-heading text-3xl font-extrabold uppercase mb-12 tracking-tighter text-center">
+        PASUL 1:{" "}
+        <span className="text-blue-500 italic">ÎNREGISTRARE COMANDĂ</span>
+      </h1>
+
+      {/* Container principal cu items-stretch pentru înălțimi egale */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-stretch">
+        {/* Card 1: Logistica Destinație */}
+        <div className="lg:col-span-2 bg-[#11131f] p-10 rounded-[2.5rem] border border-white/10 shadow-2xl flex flex-col">
+          <h3 className="font-heading text-blue-500 font-bold text-[10px] uppercase mb-10 tracking-[0.3em]">
             Logistica Destinație
           </h3>
-          <div className="space-y-6">
-            <input
-              placeholder="ID Client (Ex: CUST-777)"
-              className={`w-full bg-white/5 p-4 rounded-xl border transition-all outline-none ${
-                errors.customerId
-                  ? "border-red-500 shadow-lg shadow-red-500/10"
-                  : "border-white/10 focus:border-blue-500"
-              }`}
-              onChange={(e) =>
-                setOrder({ ...order, customerId: e.target.value })
-              }
-            />
-            <input
-              placeholder="Adresă"
-              className="w-full bg-white/5 p-4 rounded-xl border border-white/10 outline-none"
-              onChange={(e) =>
-                setOrder({
-                  ...order,
-                  deliveryAddress: {
-                    ...order.deliveryAddress,
-                    street: e.target.value,
-                  },
-                })
-              }
-            />
-            <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-8 flex-1">
+            <div>
+              <label className="font-heading text-[10px] font-bold text-white/20 uppercase mb-2 ml-1 block tracking-widest">
+                ID Client
+              </label>
               <input
-                placeholder="Oraș"
-                className="bg-white/5 p-4 rounded-xl border border-white/10 outline-none"
-                onChange={(e) =>
-                  setOrder({
-                    ...order,
-                    deliveryAddress: {
-                      ...order.deliveryAddress,
-                      city: e.target.value,
-                    },
-                  })
-                }
-              />
-              <input
-                placeholder="Cod Poștal (6 cifre)"
-                className={`bg-white/5 p-4 rounded-xl border outline-none ${
-                  errors.postalCode
-                    ? "border-red-500 shadow-lg shadow-red-500/10"
+                placeholder="CUST-XXXX"
+                className={`w-full bg-white/5 p-4 rounded-xl border font-mono text-sm outline-none transition-all ${
+                  errors.customerId
+                    ? "border-red-500"
                     : "border-white/10 focus:border-blue-500"
                 }`}
-                onChange={(e) =>
-                  setOrder({
-                    ...order,
-                    deliveryAddress: {
-                      ...order.deliveryAddress,
-                      postalCode: e.target.value,
-                    },
-                  })
-                }
+                value={order.customerId}
+                onChange={(e) => {
+                  // Prevenim ștergerea prefixului CUST-
+                  const val = e.target.value.startsWith("CUST-")
+                    ? e.target.value
+                    : "CUST-";
+                  setOrder({ ...order, customerId: val });
+                }}
               />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="col-span-2">
+                <label className="font-heading text-[10px] font-bold text-white/20 uppercase mb-2 ml-1 block tracking-widest">
+                  Adresă
+                </label>
+                <input
+                  placeholder="Strada Livezii nr 44"
+                  className="w-full bg-white/5 p-4 rounded-xl border border-white/10 outline-none focus:border-blue-500 font-mono text-sm"
+                  onChange={(e) =>
+                    setOrder({
+                      ...order,
+                      deliveryAddress: {
+                        ...order.deliveryAddress,
+                        street: e.target.value,
+                      },
+                    })
+                  }
+                />
+              </div>
+              <div>
+                <label className="font-heading text-[10px] font-bold text-white/20 uppercase mb-2 ml-1 block tracking-widest">
+                  Oraș
+                </label>
+                <input
+                  placeholder="Cluj-Napoca"
+                  className="w-full bg-white/5 p-4 rounded-xl border border-white/10 outline-none focus:border-blue-500 font-mono text-sm"
+                  onChange={(e) =>
+                    setOrder({
+                      ...order,
+                      deliveryAddress: {
+                        ...order.deliveryAddress,
+                        city: e.target.value,
+                      },
+                    })
+                  }
+                />
+              </div>
+              <div>
+                <label className="font-heading text-[10px] font-bold text-white/20 uppercase mb-2 ml-1 block tracking-widest">
+                  Cod Poștal
+                </label>
+                <input
+                  placeholder="XXXXXX"
+                  className={`w-full bg-white/5 p-4 rounded-xl border font-mono text-sm outline-none ${
+                    errors.postalCode
+                      ? "border-red-500"
+                      : "border-white/10 focus:border-blue-500"
+                  }`}
+                  onChange={(e) =>
+                    setOrder({
+                      ...order,
+                      deliveryAddress: {
+                        ...order.deliveryAddress,
+                        postalCode: e.target.value,
+                      },
+                    })
+                  }
+                />
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Articol - CARD ÎMBUNĂTĂȚIT */}
-        <div className="bg-[#11131f] p-10 rounded-[2.5rem] border border-white/10 flex flex-col min-h-[450px]">
-          <h3 className="text-blue-500 font-bold text-[10px] uppercase mb-8 tracking-widest text-center">
+        {/* Card 2: Specificații Produs (Paralel cu Cardul 1) */}
+        <div className="bg-[#11131f] p-10 rounded-[2.5rem] border border-white/10 shadow-2xl flex flex-col h-full">
+          <h3 className="font-heading text-blue-500 font-bold text-[10px] uppercase mb-10 tracking-[0.3em] text-center">
             Specificații Produs
           </h3>
 
-          <div className="flex-1 space-y-8">
+          <div className="space-y-10 flex-1">
             <div>
-              <p className="text-[10px] font-black text-white/20 uppercase mb-2 ml-1">
+              <label className="font-heading text-[10px] font-bold text-white/20 uppercase mb-2 ml-1 block tracking-widest">
                 Identificator Articol
-              </p>
+              </label>
               <input
-                placeholder="Ex: PROD-101"
-                className={`w-full bg-white/5 p-4 rounded-xl border transition-all outline-none ${
+                placeholder="PROD-XXXX"
+                className={`w-full bg-white/5 p-4 rounded-xl border font-mono text-sm outline-none transition-all ${
                   errors.productId
-                    ? "border-red-500 shadow-lg shadow-red-500/10"
+                    ? "border-red-500"
                     : "border-white/10 focus:border-blue-500"
                 }`}
+                value={order.items[0].productId}
                 onChange={(e) => {
+                  const val = e.target.value.startsWith("PROD-")
+                    ? e.target.value
+                    : "PROD-";
                   const n = [...order.items];
-                  n[0].productId = e.target.value;
+                  n[0].productId = val;
                   setOrder({ ...order, items: n });
                 }}
               />
             </div>
 
             <div className="bg-white/5 p-6 rounded-2xl border border-white/5 text-center">
-              <p className="text-[10px] font-black text-white/20 uppercase mb-2">
+              <label className="font-heading text-[10px] font-black text-white/20 uppercase tracking-widest mb-6 block">
                 Unități (Control Săgeți)
-              </p>
+              </label>
               <input
                 type="number"
                 min="1"
-                onKeyDown={(e) => e.preventDefault()} // Blochează tastatura
-                className="w-full bg-transparent text-4xl font-black text-blue-500 outline-none text-center cursor-default select-none"
+                onKeyDown={(e) => e.preventDefault()}
+                className="w-full bg-transparent font-heading text-6xl font-extrabold text-blue-500 outline-none text-center cursor-default"
                 value={order.items[0].quantity}
                 onChange={(e) => {
                   const n = [...order.items];
@@ -185,10 +217,11 @@ export const OrderPage = () => {
             </div>
           </div>
 
+          {/* Butonul este acum împins jos, dar cardul rămâne aliniat cu cel din stânga */}
           <button
             onClick={handlePlaceOrder}
             disabled={loading}
-            className="w-full py-6 bg-blue-600 rounded-2xl font-black text-xs tracking-widest hover:bg-blue-500 transition-all shadow-xl shadow-blue-600/20 mt-8"
+            className="w-full py-6 bg-blue-600 rounded-2xl font-heading font-extrabold text-xs tracking-widest hover:bg-blue-500 transition-all shadow-xl shadow-blue-600/20 mt-10"
           >
             {loading ? "SE SALVEAZĂ..." : "FINALIZEAZĂ ETAPA 1 →"}
           </button>

@@ -1,4 +1,7 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&family=Plus+Jakarta+Sans:wght@700;800&display=swap');
+
+@import "tailwindcss"
 
 :root {
   --bg: #0b0d17;
@@ -7,12 +10,18 @@
   --input-bg: rgba(255, 255, 255, 0.1);
   --card-bg: rgba(255, 255, 255, 0.03);
   --accent: #3b82f6; /* Albastru profesional */
+  font-family: 'Inter', sans-serif;
+  background-color: #07080d;
 }
 
 @theme {
-  --color-brand-bg: var(--bg);
-  --color-brand-card: var(--card-bg);
-  --color-brand-accent: var(--accent);
+
+--font-family-barlow-condensed: "Barlow Condensed", sans-serif;
+
+--font-family-bellefair: "Bellefair", serif;
+
+--font-family-barlow: "Barlow", sans-serif;
+
 }
 
 body {
@@ -20,3 +29,8 @@ body {
   color: var(--text);
   font-family: 'Inter', sans-serif;
 }
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(59, 130, 246, 0.5); }
