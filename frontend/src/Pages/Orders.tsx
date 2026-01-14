@@ -6,23 +6,28 @@ import { motion } from "framer-motion";
 export const OrderPage = () => {
   const [loading, setLoading] = useState(false);
   const [order, setOrder] = useState({
-    customerId: "CUST-123",
+    customerId: "", // Golit
     deliveryAddress: {
-      street: "Strada Exemplu 10",
-      city: "Suceava",
-      postalCode: "720229",
+      street: "",
+      city: "",
+      postalCode: "",
       country: "Romania",
     },
-    items: [{ productId: "PROD-LAPTOP", quantity: 1 }],
+    items: [{ productId: "", quantity: 1 }], // Golit
   });
 
   const handleSubmit = async () => {
     setLoading(true);
     try {
-      // Corespunde cu [HttpPost("place-order")] din OrderController
       const response = await OrderApi.placeOrder(order);
-      toast.success("Comandă plasată cu succes!");
-      console.log("Server Response:", response.data);
+
+      // Luăm ID-ul primit (care zici că e CUST-123)
+      const rawId = response.data.orderId;
+
+      // Îl salvăm ca "ultimul ID" pentru a fi folosit automat în alte tab-uri
+      localStorage.setItem("lastOrderId", rawId);
+
+      toast.success(`Comandă reușită! ID salvat: ${rawId}`);
     } catch (error: any) {
       const errorMsg =
         error.response?.data || "Eroare la conectarea cu serverul";
