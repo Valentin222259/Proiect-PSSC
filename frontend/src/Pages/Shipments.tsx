@@ -25,7 +25,6 @@ export const ShipmentPage = () => {
 
   const handleFinalize = async () => {
     setLoading(true);
-    // Reparare automată ID pentru validarea strictă a backend-ului
     const cleanId = orderId
       .replace(/-/g, "")
       .replace("CUST", "")
@@ -35,7 +34,7 @@ export const ShipmentPage = () => {
     try {
       const response = await ShipmentApi.prepareShipment({
         orderId: finalId,
-        customerId: "CUST-777", // ID valid conform DDD
+        customerId: "CUST-777",
         deliveryAddress: {
           street: "Strada Livezii nr 44",
           city: "Cluj-Napoca",
@@ -124,7 +123,7 @@ export const ShipmentPage = () => {
               Workflow-ul DDD a fost încheiat cu succes.
             </p>
 
-            {/* Success Card - "Shipping Label" Style */}
+            {/* Success Card  */}
             <div className="bg-white p-8 rounded-3xl w-full max-w-md shadow-[0_20px_50px_rgba(0,0,0,0.5)] text-black text-left font-mono border-t-8 border-blue-600">
               <div className="flex justify-between items-start mb-6">
                 <div>

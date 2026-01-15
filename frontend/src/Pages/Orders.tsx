@@ -9,7 +9,7 @@ export const OrderPage = () => {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<any>({});
 
-  // Inițializăm starea cu prefixele deja prezente în căsuțe
+  // Inițializăm starile
   const [order, setOrder] = useState({
     customerId: "CUST-",
     deliveryAddress: {
@@ -23,7 +23,7 @@ export const OrderPage = () => {
 
   const validate = () => {
     let newErrors: any = {};
-    // Verificăm dacă utilizatorul a introdus mai mult decât simplul prefix
+    // Verificare câmpuri obligatorii
     if (order.customerId.length <= 5)
       newErrors.customerId = "Introduceți cifrele după CUST-";
     if (!/^\d{6}$/.test(order.deliveryAddress.postalCode))
@@ -75,7 +75,7 @@ export const OrderPage = () => {
         <span className="text-blue-500 italic">ÎNREGISTRARE COMANDĂ</span>
       </h1>
 
-      {/* Container principal cu items-stretch pentru înălțimi egale */}
+      {/* Container principal (logica destinatie si specificatii produs) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-stretch">
         {/* Card 1: Logistica Destinație */}
         <div className="lg:col-span-2 bg-[#11131f] p-10 rounded-[2.5rem] border border-white/10 shadow-2xl flex flex-col">
@@ -168,7 +168,7 @@ export const OrderPage = () => {
           </div>
         </div>
 
-        {/* Card 2: Specificații Produs (Paralel cu Cardul 1) */}
+        {/* Card 2: Specificații Produs */}
         <div className="bg-[#11131f] p-10 rounded-[2.5rem] border border-white/10 shadow-2xl flex flex-col h-full">
           <h3 className="font-heading text-blue-500 font-bold text-[10px] uppercase mb-10 tracking-[0.3em] text-center">
             Specificații Produs
@@ -200,24 +200,46 @@ export const OrderPage = () => {
 
             <div className="bg-white/5 p-6 rounded-2xl border border-white/5 text-center">
               <label className="font-heading text-[10px] font-black text-white/20 uppercase tracking-widest mb-6 block">
-                Unități (Control Săgeți)
+                Unități Comandate
               </label>
-              <input
-                type="number"
-                min="1"
-                onKeyDown={(e) => e.preventDefault()}
-                className="w-full bg-transparent font-heading text-6xl font-extrabold text-blue-500 outline-none text-center cursor-default"
-                value={order.items[0].quantity}
-                onChange={(e) => {
-                  const n = [...order.items];
-                  n[0].quantity = parseInt(e.target.value);
-                  setOrder({ ...order, items: n });
-                }}
-              />
+
+              <div className="flex items-center justify-center gap-8">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const n = [...order.items];
+                    if (n[0].quantity > 1) {
+                      n[0].quantity -= 1;
+                      setOrder({ ...order, items: n });
+                    }
+                  }}
+                  className="w-12 h-12 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/5 transition-colors text-white/50 hover:text-white"
+                >
+                  <span className="text-2xl">-</span>
+                </button>
+
+                {/* Afișare Cantitate */}
+                <div className="w-20">
+                  <span className="font-heading text-6xl font-extrabold text-blue-500 block">
+                    {order.items[0].quantity}
+                  </span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const n = [...order.items];
+                    n[0].quantity += 1;
+                    setOrder({ ...order, items: n });
+                  }}
+                  className="w-12 h-12 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/5 transition-colors text-white/50 hover:text-white"
+                >
+                  <span className="text-2xl">+</span>
+                </button>
+              </div>
             </div>
           </div>
 
-          {/* Butonul este acum împins jos, dar cardul rămâne aliniat cu cel din stânga */}
           <button
             onClick={handlePlaceOrder}
             disabled={loading}

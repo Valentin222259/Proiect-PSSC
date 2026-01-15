@@ -40,20 +40,20 @@ export const Dashboard = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
         <StatCard
-          title="Total Comenzi"
-          value={orders.length}
+          title="Comenzi Noi (Pas 1)"
+          value={orders.filter((o) => o.status === "Plasată").length} // Numără doar cele care așteaptă facturarea
           icon={<FaBox />}
           color="text-blue-500"
         />
         <StatCard
-          title="Facturi Emise"
-          value={orders.filter((o) => o.status === "Facturată").length}
+          title="În Așteptare Livrare (Pas 2)"
+          value={orders.filter((o) => o.status === "Facturată").length} // Numără cele facturate, dar neexpediate
           icon={<FaFileInvoiceDollar />}
           color="text-emerald-500"
         />
         <StatCard
-          title="Livrări Finalizate"
-          value={orders.filter((o) => o.status === "Livrată").length}
+          title="Livrări Finalizate (Pas 3)"
+          value={orders.filter((o) => o.status === "Livrată").length} // Numără doar fluxurile încheiate
           icon={<FaTruck />}
           color="text-purple-500"
         />
@@ -73,7 +73,7 @@ export const Dashboard = () => {
               <th className="p-5 text-center">Client ID</th>
               <th className="p-5 text-center">Status Flux</th>
               <th className="p-5 text-center">Data & Ora Înregistrării</th>
-              <th className="p-5 text-center">Acțiuni</th> {/* Coloană nouă */}
+              <th className="p-5 text-center">Acțiuni</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-white/5 font-mono">
@@ -86,16 +86,22 @@ export const Dashboard = () => {
                   {order.customer}
                 </td>
                 <td className="p-5 text-center">
-                  {/* Forțăm afișarea statusului "Plasată" cu stilul albastru */}
-                  <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase border bg-blue-500/10 text-blue-500 border-blue-500/20">
-                    Plasată
+                  <span
+                    className={`px-2 py-0.5 rounded text-[9px] font-black uppercase border ${
+                      order.status === "Plasată"
+                        ? "bg-blue-500/10 text-blue-500 border-blue-500/20"
+                        : order.status === "Facturată"
+                        ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+                        : "bg-purple-500/10 text-purple-500 border-purple-500/20"
+                    }`}
+                  >
+                    {order.status}
                   </span>
                 </td>
                 <td className="p-5 text-center text-white/30 text-[11px]">
                   {order.date}
                 </td>
                 <td className="p-5 text-center">
-                  {/* Butonul de ștergere */}
                   <button
                     onClick={() => handleDelete(order.id)}
                     className="text-red-500 hover:text-red-400 transition-colors p-2"
