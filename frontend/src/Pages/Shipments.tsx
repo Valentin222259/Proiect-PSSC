@@ -14,11 +14,10 @@ export const ShipmentPage = () => {
   const [shipmentData, setShipmentData] = useState<any>(null);
 
   useEffect(() => {
-    // 1. Preluare date din Istoric sau LocalStorage
     if (location.state?.isAlreadyFinalized) {
       const data = location.state;
       setOrderId(data.orderId);
-      // Pregătim datele pentru factură
+
       setShipmentData({
         trackingNumber: `AWB-${data.orderId?.split("-")[1] || Math.floor(100000 + Math.random() * 900000)}`,
         carrier: "DHL EXPRESS",
@@ -28,7 +27,9 @@ export const ShipmentPage = () => {
         quantity: data.quantity || 1,
         productId: data.productId || "PROD-GEN",
       });
-      // NU setăm showSuccess direct aici pentru a lăsa utilizatorul să vadă animația și să apese butonul
+
+      // MODIFICARE: Sărim direct la factura (showSuccess) pentru că este deja finalizată
+      setShowSuccess(true);
     } else {
       const saved = localStorage.getItem("lastOrderId");
       if (!saved) {
