@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { FaTrash } from "react-icons/fa";
+import { FaTrash, FaTruck } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
 
 export const MyHistoryPage = () => {
   const [myOrders, setMyOrders] = useState<any[]>([]);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const saved = JSON.parse(localStorage.getItem("userCreatedOrders") || "[]");
@@ -67,6 +69,20 @@ export const MyHistoryPage = () => {
                   </span>
                 </td>
                 <td className="p-5 text-center">
+                  <button
+                    onClick={() =>
+                      navigate("/shipments", {
+                        state: {
+                          ...o, // Trimitem toate datele (nume, adresă, oraș etc.)
+                          orderId: o.orderId || o.id || o.internalId,
+                          isAlreadyFinalized: true,
+                        },
+                      })
+                    }
+                    className="text-blue-500 hover:text-blue-400 transition-colors p-2"
+                  >
+                    <FaTruck size={14} />
+                  </button>
                   <button
                     onClick={() => handleDelete(o.internalId)}
                     className="text-red-500 hover:text-red-400 transition-colors p-2"
