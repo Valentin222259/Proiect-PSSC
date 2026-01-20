@@ -4,6 +4,8 @@ import { FaBarcode, FaCheckCircle, FaTruck } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
 import toast from "react-hot-toast";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 
 export const ShipmentPage = () => {
   const navigate = useNavigate();
@@ -64,9 +66,32 @@ export const ShipmentPage = () => {
     }
   }, [location, navigate]);
 
+  const handleDownloadPDF = async () => {
+    const element = document.getElementById("invoice-printable");
+    if (!element) return;
+
+    const canvas = await html2canvas(element, { scale: 2 });
+    const imgData = canvas.toDataURL("image/png");
+    const pdf = new jsPDF("p", "mm", "a4");
+
+    const imgProps = pdf.getImageProperties(imgData);
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+    pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+    pdf.save(`Factura_${orderId}.pdf`);
+  };
+
   const handleFinalizeManual = () => {
     setLoading(true);
     setTimeout(() => {
+      // ACTUALIZARE STATUS ÎN LOCALSTORAGE
+      const history = JSON.parse(localStorage.getItem("ordersHistory") || "[]");
+      const updated = history.map((o: any) =>
+        o.id === orderId ? { ...o, status: "Livrată" } : o,
+      );
+      localStorage.setItem("ordersHistory", JSON.stringify(updated));
+
       setLoading(false);
       setShowSuccess(true);
       confetti({
@@ -221,6 +246,12 @@ export const ShipmentPage = () => {
                 className="px-8 py-3 bg-white text-black rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-gray-200 transition-all"
               >
                 Printează Factura
+              </button>
+              <button
+                onClick={handleDownloadPDF}
+                className="px-8 py-3 bg-emerald-600 text-white rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-emerald-500 transition-all shadow-lg"
+              >
+                Descarcă PDF
               </button>
               <button
                 onClick={() => navigate("/")}
