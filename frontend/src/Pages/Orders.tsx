@@ -43,16 +43,39 @@ export const OrderPage = () => {
       const response = await OrderApi.placeOrder(order);
       localStorage.setItem("lastOrderId", response.data.orderId);
 
-      const history = JSON.parse(localStorage.getItem("ordersHistory") || "[]");
+      // istoricul personal
       const newEntry = {
+        internalId: Date.now().toString(), // ID pentru stergere
+        orderId: response.data.orderId,
+        customerId: order.customerId,
+        street: order.deliveryAddress.street,
+        city: order.deliveryAddress.city,
+        postalCode: order.deliveryAddress.postalCode,
+        productId: order.items[0].productId,
+        quantity: order.items[0].quantity,
+        date: new Date().toLocaleString("ro-RO"),
+      };
+
+      // Salvare in lista
+      const myHistory = JSON.parse(
+        localStorage.getItem("userCreatedOrders") || "[]",
+      );
+      localStorage.setItem(
+        "userCreatedOrders",
+        JSON.stringify([newEntry, ...myHistory]),
+      );
+
+      // Salvare in istoricul general
+      const history = JSON.parse(localStorage.getItem("ordersHistory") || "[]");
+      const dashboardEntry = {
         id: response.data.orderId,
         customer: order.customerId,
         status: "Plasată",
-        date: new Date().toLocaleString("ro-RO"),
+        date: newEntry.date,
       };
       localStorage.setItem(
         "ordersHistory",
-        JSON.stringify([newEntry, ...history])
+        JSON.stringify([dashboardEntry, ...history]),
       );
 
       toast.success("Comandă confirmată!");
@@ -77,7 +100,7 @@ export const OrderPage = () => {
 
       {/* Container principal (logica destinatie si specificatii produs) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-stretch">
-        {/* Card 1: Logistica Destinație */}
+        {/* Card 1: Logistica Destinatie */}
         <div className="lg:col-span-2 bg-[#11131f] p-10 rounded-[2.5rem] border border-white/10 shadow-2xl flex flex-col">
           <h3 className="font-heading text-blue-500 font-bold text-[10px] uppercase mb-10 tracking-[0.3em]">
             Logistica Destinație
@@ -96,7 +119,6 @@ export const OrderPage = () => {
                 }`}
                 value={order.customerId}
                 onChange={(e) => {
-                  // Prevenim ștergerea prefixului CUST-
                   const val = e.target.value.startsWith("CUST-")
                     ? e.target.value
                     : "CUST-";

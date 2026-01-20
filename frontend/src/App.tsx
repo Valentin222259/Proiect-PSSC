@@ -6,6 +6,7 @@ import { Dashboard } from "./Pages/Dashboard";
 import { OrderPage } from "./Pages/Orders";
 import { InvoicePage } from "./Pages/Invoices";
 import { ShipmentPage } from "./Pages/Shipments";
+import { MyHistoryPage } from "./Pages/MyHistory";
 
 function App() {
   const location = useLocation();
@@ -29,6 +30,7 @@ function App() {
             <Route path="/orders" element={<OrderPage />} />
             <Route path="/invoices" element={<InvoicePage />} />
             <Route path="/shipments" element={<ShipmentPage />} />
+            <Route path="/my-history" element={<MyHistoryPage />} />
           </Routes>
         </AnimatePresence>
       </main>

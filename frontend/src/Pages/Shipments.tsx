@@ -47,7 +47,6 @@ export const ShipmentPage = () => {
       setShipmentData(response.data);
       setShowSuccess(true);
 
-      // Declanșare Confetti
       confetti({
         particleCount: 150,
         spread: 70,
@@ -58,7 +57,7 @@ export const ShipmentPage = () => {
       // Actualizăm statusul în istoric
       const history = JSON.parse(localStorage.getItem("ordersHistory") || "[]");
       const updated = history.map((o: any) =>
-        o.id === orderId ? { ...o, status: "Livrată" } : o
+        o.id === orderId ? { ...o, status: "Livrată" } : o,
       );
       localStorage.setItem("ordersHistory", JSON.stringify(updated));
 

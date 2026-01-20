@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { FaHome, FaBox, FaCircle } from "react-icons/fa";
+import { FaHome, FaBox, FaCircle, FaHistory } from "react-icons/fa";
 
 export const Sidebar = () => (
   <aside className="w-72 border-r border-white/10 flex flex-col p-8 bg-[#07080d]">
@@ -13,6 +13,11 @@ export const Sidebar = () => (
     <nav className="flex-1 space-y-2">
       <MenuLink to="/" icon={<FaHome />} label="Dashboard" />
       <MenuLink to="/orders" icon={<FaBox />} label="Procesare Comenzi" />
+      <MenuLink
+        to="/my-history"
+        icon={<FaHistory />}
+        label="Istoric Personal"
+      />
     </nav>
 
     <div className="mt-auto pt-6 border-t border-white/5">
