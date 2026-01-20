@@ -16,7 +16,7 @@ export const ShipmentPage = () => {
   const [shipmentData, setShipmentData] = useState<any>(null);
 
   useEffect(() => {
-    // 1. Cazul în care venim din Istoric (Tabel)
+    //cand venim din istoric
     if (location.state?.isAlreadyFinalized) {
       const data = location.state;
       setOrderId(data.orderId);
@@ -29,9 +29,9 @@ export const ShipmentPage = () => {
         quantity: data.quantity || 1,
         productId: data.productId || "PROD-GEN",
       });
-      setShowSuccess(true); // Sărim direct la factură dacă e deja finalizată
+      setShowSuccess(true);
     }
-    // 2. Cazul fluxului normal (Comandă abia creată)
+    // 2. Fluxul normal
     else {
       const savedId = localStorage.getItem("lastOrderId");
       if (!savedId) {
@@ -85,7 +85,7 @@ export const ShipmentPage = () => {
   const handleFinalizeManual = () => {
     setLoading(true);
     setTimeout(() => {
-      // ACTUALIZARE STATUS ÎN LOCALSTORAGE
+      // ACTUALIZARE STATUS
       const history = JSON.parse(localStorage.getItem("ordersHistory") || "[]");
       const updated = history.map((o: any) =>
         o.id === orderId ? { ...o, status: "Livrată" } : o,
@@ -239,7 +239,7 @@ export const ShipmentPage = () => {
               </div>
             </div>
 
-            {/* BUTOANE ACȚIUNE */}
+            {/* BUTOANE */}
             <div className="flex flex-col sm:flex-row gap-6 mt-12 no-print">
               <button
                 onClick={() => window.print()}
