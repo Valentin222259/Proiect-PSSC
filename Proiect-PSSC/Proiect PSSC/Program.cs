@@ -2,8 +2,18 @@
 using Domain.Workflows;
 using Microsoft.EntityFrameworkCore;
 using Proiect_PSSC.Data;
+using Proiect_PSSC.Services;
+using Proiect_PSSC.Models;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// ✅ Load products from Excel file
+var excelPath = @"D:\Proiect-PSSC\Proiect-PSSC\Proiect PSSC\Prices.xlsx";
+var productLoader = new ProductLoader(excelPath);
+var products = productLoader.LoadProducts();
+
+// ✅ Add products as a singleton so controllers can use them
+builder.Services.AddSingleton(products);
 
 // Add services to the container.
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -15,8 +25,8 @@ builder.Services.AddSwaggerGen();
 
 // Register all workflows
 builder.Services.AddTransient<PlaceOrderWorkflow>();
-builder.Services.AddTransient<GenerateInvoiceWorkflow>();      
-builder.Services.AddTransient<PrepareShipmentWorkflow>();      
+builder.Services.AddTransient<GenerateInvoiceWorkflow>();
+builder.Services.AddTransient<PrepareShipmentWorkflow>();
 
 var app = builder.Build();
 
@@ -25,7 +35,7 @@ if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
-    
+
     // DEVELOPMENT ONLY: Endpoint to clear all data from tables
     app.MapDelete("/dev/clear-data", async (ApplicationDbContext dbContext) =>
     {
@@ -35,18 +45,18 @@ if (app.Environment.IsDevelopment())
             dbContext.DeliveredShipments.RemoveRange(dbContext.DeliveredShipments);
             dbContext.SentInvoices.RemoveRange(dbContext.SentInvoices);
             dbContext.DeliveredOrders.RemoveRange(dbContext.DeliveredOrders);
-            
+
             await dbContext.SaveChangesAsync();
-            
+
             // Reset identity columns to start from 1
             await dbContext.Database.ExecuteSqlRawAsync("DBCC CHECKIDENT ('DeliveredOrders', RESEED, 0)");
             await dbContext.Database.ExecuteSqlRawAsync("DBCC CHECKIDENT ('DeliveredShipments', RESEED, 0)");
             await dbContext.Database.ExecuteSqlRawAsync("DBCC CHECKIDENT ('OrderItems', RESEED, 0)");
             await dbContext.Database.ExecuteSqlRawAsync("DBCC CHECKIDENT ('ShipmentItems', RESEED, 0)");
             await dbContext.Database.ExecuteSqlRawAsync("DBCC CHECKIDENT ('InvoiceItems', RESEED, 0)");
-            
-            return Results.Ok(new 
-            { 
+
+            return Results.Ok(new
+            {
                 Message = "All data cleared successfully and identity columns reset!",
                 TablesCleared = new[] { "DeliveredShipments", "SentInvoices", "DeliveredOrders" },
                 IdentityReset = new[] { "DeliveredOrders", "DeliveredShipments", "OrderItems", "ShipmentItems", "InvoiceItems" }

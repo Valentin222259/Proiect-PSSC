@@ -14,15 +14,16 @@ namespace Domain.Workflows
             PlaceOrderCommand command,
             Func<string, bool> checkCustomerExists,
             Func<string, bool> checkProductExists,
-            Func<string, int> getAvailableStock,      
-            Func<string, int, string> reserveStock  
+            Func<string, int> getAvailableStock,
+            Func<string, int, string> reserveStock,
+            Func<string, decimal> getProductPrice  // ✅ Add this parameter
             )
         {
             // 1. Start with Unvalidated state (from command)
             IOrder order = command.InputOrder;
 
             // 2. Validation (Unvalidated -> Validated or Invalid)
-            order = new ValidateOrderOperation(checkCustomerExists, checkProductExists)
+            order = new ValidateOrderOperation(checkCustomerExists, checkProductExists, getProductPrice)  // 
                 .Transform(order);
 
             // 3. Check Availability & Reserve Stock (Validated -> StockReserved or Invalid)

@@ -1,39 +1,4 @@
-﻿// Create ValidateOrderOperation following the pattern from copilot-instructions.md
-//
-// This operation transforms UnvalidatedOrder to either ValidatedOrder or InvalidOrder
-//
-// Dependencies:
-// - Func<string, bool> customerExists (passed via constructor): Checks if customer exists in database
-// - Func<string, bool> productExists (passed via constructor): Checks if product exists in inventory
-//
-// Business logic:
-// - Create empty error list
-// - Parse customerId to CustomerId using CustomerId.TryParse
-// - If parsing fails, add error: "Invalid customer ID ({customerId})"
-// - If parsing succeeds, check if customer exists using customerExists(customerId)
-// - If not exists, add error: "Customer not found ({customerId})"
-// - Parse deliveryAddress to Address using Address.TryParse
-// - If parsing fails, add error: "Invalid delivery address"
-// - Create list for validated OrderItems
-// - For each item in unvalidated items:
-//   - Parse productId to ProductId using ProductId.TryParse
-//   - If parsing fails, add error: "Invalid product ID ({item.ProductId})"
-//   - If parsing succeeds, check if product exists using productExists(productId)
-//   - If not exists, add error: "Product not found ({item.ProductId})"
-//   - Validate quantity > 0, if not add error: "Invalid quantity for product ({item.ProductId})"
-//   - Create Money unitPrice (for now, use a mock value like new Money(10.0m, "USD") or get from dependency)
-//   - Add new OrderItem(productId, quantity, unitPrice) to validated items list
-// - Calculate totalAmount by summing all (item.Quantity * item.UnitPrice.Amount) and create Money with currency
-// - If any errors exist, return new InvalidOrder(errors)
-// - If no errors, return new ValidatedOrder(customerId, validatedItems, address, totalAmount)
-//
-// Override OnUnvalidated method
-// Return either ValidatedOrder or InvalidOrder based on validation results
-//
-// Constructor signature:
-// internal ValidateOrderOperation(Func<string, bool> customerExists, Func<string, bool> productExists)
-
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using Domain.Models.Entities;
@@ -45,11 +10,17 @@ namespace Domain.Operations
     {
         private readonly Func<string, bool> customerExists;
         private readonly Func<string, bool> productExists;
+        private readonly Func<string, decimal> getProductPrice;
 
-        internal ValidateOrderOperation(Func<string, bool> customerExists, Func<string, bool> productExists)
+        // ✅ Updated constructor to accept 3 parameters
+        internal ValidateOrderOperation(
+            Func<string, bool> customerExists,
+            Func<string, bool> productExists,
+            Func<string, decimal> getProductPrice)
         {
             this.customerExists = customerExists ?? throw new ArgumentNullException(nameof(customerExists));
             this.productExists = productExists ?? throw new ArgumentNullException(nameof(productExists));
+            this.getProductPrice = getProductPrice ?? throw new ArgumentNullException(nameof(getProductPrice));
         }
 
         protected override IOrder OnUnvalidated(UnvalidatedOrder unvalidated)
@@ -84,7 +55,7 @@ namespace Domain.Operations
                 parsedAddress = address;
             }
 
-            // Items validation and unit price (mocked)
+            // Items validation with REAL prices
             var validatedItems = new List<OrderItem>();
             foreach (var raw in unvalidated.Items ?? Enumerable.Empty<UnvalidatedOrderItem>())
             {
@@ -116,8 +87,19 @@ namespace Domain.Operations
                     continue;
                 }
 
-                // Unit price – mocked for now
-                var unitPrice = Money.Create(10.00m, "USD");
+                // ✅ Get REAL price from the dependency function
+                decimal price;
+                try
+                {
+                    price = getProductPrice(rawProductId);
+                }
+                catch (Exception ex)
+                {
+                    errors.Add($"Failed to get price for product ({rawProductId}): {ex.Message}");
+                    continue;
+                }
+
+                var unitPrice = Money.Create(price, "USD");
 
                 validatedItems.Add(new OrderItem(parsedProductId, raw.Quantity, unitPrice));
             }
@@ -126,7 +108,7 @@ namespace Domain.Operations
             if (errors.Any())
                 return new InvalidOrder(errors);
 
-            // Calculate total
+            // Calculate total with REAL prices
             decimal total = validatedItems.Sum(i => i.UnitPrice.Amount * i.Quantity);
             var totalMoney = Money.Create(total, "USD");
 
