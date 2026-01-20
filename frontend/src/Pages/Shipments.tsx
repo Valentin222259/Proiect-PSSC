@@ -14,10 +14,10 @@ export const ShipmentPage = () => {
   const [shipmentData, setShipmentData] = useState<any>(null);
 
   useEffect(() => {
+    // 1. Cazul în care venim din Istoric (Tabel)
     if (location.state?.isAlreadyFinalized) {
       const data = location.state;
       setOrderId(data.orderId);
-
       setShipmentData({
         trackingNumber: `AWB-${data.orderId?.split("-")[1] || Math.floor(100000 + Math.random() * 900000)}`,
         carrier: "DHL EXPRESS",
@@ -27,16 +27,39 @@ export const ShipmentPage = () => {
         quantity: data.quantity || 1,
         productId: data.productId || "PROD-GEN",
       });
-
-      // MODIFICARE: Sărim direct la factura (showSuccess) pentru că este deja finalizată
-      setShowSuccess(true);
-    } else {
-      const saved = localStorage.getItem("lastOrderId");
-      if (!saved) {
+      setShowSuccess(true); // Sărim direct la factură dacă e deja finalizată
+    }
+    // 2. Cazul fluxului normal (Comandă abia creată)
+    else {
+      const savedId = localStorage.getItem("lastOrderId");
+      if (!savedId) {
         toast.error("Nicio expediție activă!");
         navigate("/orders");
       } else {
-        setOrderId(saved);
+        setOrderId(savedId);
+
+        // Căutăm detaliile comenzii în localStorage pentru a completa factura
+        const allOrders = JSON.parse(
+          localStorage.getItem("userCreatedOrders") || "[]",
+        );
+        const currentOrder = allOrders.find(
+          (o: any) =>
+            o.internalId === savedId ||
+            o.orderId === savedId ||
+            o.id === savedId,
+        );
+
+        if (currentOrder) {
+          setShipmentData({
+            trackingNumber: `AWB-${savedId.split("-")[1] || Math.floor(100000 + Math.random() * 900000)}`,
+            carrier: "DHL EXPRESS",
+            customerName: currentOrder.customerId || currentOrder.customer,
+            address: `${currentOrder.street || "Adresă Nespecificată"}, ${currentOrder.city || ""}`,
+            postalCode: currentOrder.postalCode || "N/A",
+            quantity: currentOrder.quantity || 1,
+            productId: currentOrder.productId || "PROD-GEN",
+          });
+        }
       }
     }
   }, [location, navigate]);
