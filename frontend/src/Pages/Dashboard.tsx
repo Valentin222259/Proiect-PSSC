@@ -12,8 +12,97 @@ export const Dashboard = () => {
   const [orders, setOrders] = useState<any[]>([]);
 
   useEffect(() => {
-    const history = JSON.parse(localStorage.getItem("ordersHistory") || "[]");
-    setOrders(history);
+    const savedHistory = JSON.parse(
+      localStorage.getItem("ordersHistory") || "[]",
+    );
+
+    const testOrders = [
+      {
+        id: "ORD-V1",
+        customer: "CUST-101",
+        status: "Plasată",
+        date: "20.01.2026, 14:45",
+      },
+      {
+        id: "ORD-W1",
+        customer: "CUST-772",
+        status: "Facturată",
+        date: "20.01.2026, 12:45",
+      },
+      {
+        id: "ORD-V2",
+        customer: "CUST-205",
+        status: "Plasată",
+        date: "20.01.2026, 14:30",
+      },
+      {
+        id: "ORD-W5",
+        customer: "CUST-901",
+        status: "Facturată",
+        date: "20.01.2026, 10:50",
+      },
+      {
+        id: "ORD-V5",
+        customer: "CUST-101",
+        status: "Plasată",
+        date: "20.01.2026, 13:40",
+      },
+      {
+        id: "ORD-Z1",
+        customer: "CUST-999",
+        status: "Livrată",
+        date: "20.01.2026, 09:15",
+      },
+      {
+        id: "ORD-V3",
+        customer: "CUST-309",
+        status: "Plasată",
+        date: "20.01.2026, 14:15",
+      },
+      {
+        id: "ORD-W2",
+        customer: "CUST-202",
+        status: "Facturată",
+        date: "20.01.2026, 12:20",
+      },
+      {
+        id: "ORD-V7",
+        customer: "CUST-601",
+        status: "Plasată",
+        date: "20.01.2026, 13:05",
+      },
+      {
+        id: "ORD-W4",
+        customer: "CUST-442",
+        status: "Facturată",
+        date: "20.01.2026, 11:30",
+      },
+      {
+        id: "ORD-V4",
+        customer: "CUST-412",
+        status: "Plasată",
+        date: "20.01.2026, 13:50",
+      },
+      {
+        id: "ORD-W3",
+        customer: "CUST-881",
+        status: "Facturată",
+        date: "20.01.2026, 11:55",
+      },
+      {
+        id: "ORD-V6",
+        customer: "CUST-550",
+        status: "Plasată",
+        date: "20.01.2026, 13:20",
+      },
+    ];
+
+    if (savedHistory.length < 13) {
+      setOrders(testOrders);
+      localStorage.setItem("ordersHistory", JSON.stringify(testOrders));
+    } else {
+      setOrders(savedHistory);
+    }
   }, []);
 
   const handleDelete = (id: string) => {
@@ -38,24 +127,29 @@ export const Dashboard = () => {
         </p>
       </header>
 
+      {/* METRICI ACTUALIZATE */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
         <StatCard
-          title="Comenzi Noi (Pas 1)"
-          value={orders.filter((o) => o.status === "Plasată").length} // Numără doar cele care așteaptă facturarea
+          title="Preluare"
+          value={orders.filter((o) => o.status === "Plasată").length}
           icon={<FaBox />}
           color="text-blue-500"
         />
         <StatCard
-          title="În Așteptare Livrare (Pas 2)"
-          value={orders.filter((o) => o.status === "Facturată").length} // Numără cele facturate, dar neexpediate
+          title="În Procesare"
+          value={orders.filter((o) => o.status === "Facturată").length}
           icon={<FaFileInvoiceDollar />}
-          color="text-emerald-500"
+          color="text-amber-500"
         />
         <StatCard
-          title="Livrări Finalizate (Pas 3)"
-          value={orders.filter((o) => o.status === "Livrată").length} // Numără doar fluxurile încheiate
+          title="Livrate"
+          value={
+            orders.filter(
+              (o) => o.status === "Livrată" || o.status === "Expediată",
+            ).length
+          }
           icon={<FaTruck />}
-          color="text-purple-500"
+          color="text-emerald-500"
         />
       </div>
 
@@ -91,8 +185,8 @@ export const Dashboard = () => {
                       order.status === "Plasată"
                         ? "bg-blue-500/10 text-blue-500 border-blue-500/20"
                         : order.status === "Facturată"
-                        ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
-                        : "bg-purple-500/10 text-purple-500 border-purple-500/20"
+                          ? "bg-amber-500/10 text-amber-500 border-amber-500/20"
+                          : "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
                     }`}
                   >
                     {order.status}
@@ -105,7 +199,6 @@ export const Dashboard = () => {
                   <button
                     onClick={() => handleDelete(order.id)}
                     className="text-red-500 hover:text-red-400 transition-colors p-2"
-                    title="Șterge comanda"
                   >
                     <FaTrash size={14} />
                   </button>
