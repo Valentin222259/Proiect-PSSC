@@ -9,7 +9,7 @@ export const OrderPage = () => {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<any>({});
 
-  // Inițializăm starile
+  // Inițializare stari
   const [order, setOrder] = useState({
     customerId: "CUST-",
     deliveryAddress: {
@@ -23,7 +23,7 @@ export const OrderPage = () => {
 
   const validate = () => {
     let newErrors: any = {};
-    // Verificare câmpuri obligatorii
+    // Verificare campuri obligatorii
     if (order.customerId.length <= 5)
       newErrors.customerId = "Introduceți cifrele după CUST-";
     if (!/^\d{6}$/.test(order.deliveryAddress.postalCode))
@@ -98,7 +98,7 @@ export const OrderPage = () => {
         <span className="text-blue-500 italic">ÎNREGISTRARE COMANDĂ</span>
       </h1>
 
-      {/* Container principal (logica destinatie si specificatii produs) */}
+      {/* Container principal */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-stretch">
         {/* Card 1: Logistica Destinatie */}
         <div className="lg:col-span-2 bg-[#11131f] p-10 rounded-[2.5rem] border border-white/10 shadow-2xl flex flex-col">

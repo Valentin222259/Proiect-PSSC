@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { FaTrash, FaBox } from "react-icons/fa";
+import { FaTrash } from "react-icons/fa";
 
 export const MyHistoryPage = () => {
   const [myOrders, setMyOrders] = useState<any[]>([]);
@@ -50,8 +50,8 @@ export const MyHistoryPage = () => {
                 key={o.internalId}
                 className="hover:bg-white/[0.02] transition-colors"
               >
-                <td className="p-5 text-center text-white/80">
-                  {o.customerId}
+                <td className="p-5 text-center text-white/80 font-bold">
+                  {o.customerId || o.customer}
                 </td>
                 <td className="p-5 text-center text-white/50">{o.street}</td>
                 <td className="p-5 text-center text-white/50">{o.city}</td>
