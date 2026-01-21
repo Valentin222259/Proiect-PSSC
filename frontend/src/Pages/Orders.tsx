@@ -24,16 +24,15 @@ function OrderForm({
   onOrderAdded: (order: WorkflowItem) => void;
 }) {
   const [formData, setFormData] = useState({
-    customerId: "CUST-001",
-    street: "123 Main Street",
-    city: "New York",
-    postalCode: "10001",
-    country: "USA",
+    customerId: "",
+    street: "",
+    city: "",
+    postalCode: "",
+    country: "",
   });
-  const [items, setItems] = useState([
-    { productId: "PROD-001", quantity: 5 },
-    { productId: "PROD-002", quantity: 3 },
-  ]);
+  const [items, setItems] = useState<
+    Array<{ productId: string; quantity: number }>
+  >([]);
   const [loading, setLoading] = useState(false);
 
   const addItem = () => {
@@ -119,6 +118,7 @@ function OrderForm({
             total: calculateTotal(),
             itemCount: items.length,
             city: formData.city,
+            items: items, // Store items for later use in invoicing/shipping
           },
         });
         setMessage({
@@ -151,6 +151,7 @@ function OrderForm({
         <label className="block text-sm font-medium mb-2">Customer ID</label>
         <input
           type="text"
+          placeholder="e.g., CUST-001"
           value={formData.customerId}
           onChange={(e) =>
             setFormData({ ...formData, customerId: e.target.value })
@@ -289,12 +290,12 @@ export const OrderPage = ({
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-white/10">
-                  <th className="text-left py-3 px-4">Order ID</th>
-                  <th className="text-left py-3 px-4">Customer ID</th>
-                  <th className="text-left py-3 px-4">City</th>
-                  <th className="text-left py-3 px-4">Total</th>
-                  <th className="text-left py-3 px-4">Items</th>
-                  <th className="text-left py-3 px-4">Status</th>
+                  <th className="text-center py-3 px-4">Order ID</th>
+                  <th className="text-center py-3 px-4">Customer ID</th>
+                  <th className="text-center py-3 px-4">City</th>
+                  <th className="text-center py-3 px-4">Total</th>
+                  <th className="text-center py-3 px-4">Items</th>
+                  <th className="text-center py-3 px-4">Status</th>
                 </tr>
               </thead>
               <tbody>
@@ -303,16 +304,22 @@ export const OrderPage = ({
                     key={order.id}
                     className="border-b border-white/5 hover:bg-white/5"
                   >
-                    <td className="py-3 px-4 font-mono text-blue-400">
+                    <td className="text-center py-3 px-4 font-mono text-blue-400">
                       {order.id}
                     </td>
-                    <td className="py-3 px-4">{order.customerId}</td>
-                    <td className="py-3 px-4">{order.details?.city}</td>
-                    <td className="py-3 px-4 text-green-400">
+                    <td className="text-center py-3 px-4">
+                      {order.customerId}
+                    </td>
+                    <td className="text-center py-3 px-4">
+                      {order.details?.city}
+                    </td>
+                    <td className="text-center py-3 px-4 text-green-400">
                       ${order.details?.total}
                     </td>
-                    <td className="py-3 px-4">{order.details?.itemCount}</td>
-                    <td className="py-3 px-4">
+                    <td className="text-center py-3 px-4">
+                      {order.details?.itemCount}
+                    </td>
+                    <td className="text-center py-3 px-4">
                       <span className="bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-xs">
                         {order.status}
                       </span>

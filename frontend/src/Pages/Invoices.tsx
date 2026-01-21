@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Trash2, Plus, FileText, AlertCircle, CheckCircle } from "lucide-react";
 import type { WorkflowState, WorkflowItem } from "../App";
 
@@ -19,23 +19,46 @@ interface Message {
 function InvoiceForm({
   setMessage,
   onInvoiceAdded,
+  initialOrderId,
+  initialCustomerId,
+  initialItems,
 }: {
   setMessage: (msg: Message) => void;
   onInvoiceAdded: (invoice: WorkflowItem) => void;
+  initialOrderId?: string;
+  initialCustomerId?: string;
+  initialItems?: Array<{ productId: string; quantity: number }>;
 }) {
   const [formData, setFormData] = useState({
-    orderId: "ORD-001",
-    customerId: "CUST-001",
-    street: "789 Billing Avenue",
-    city: "Chicago",
-    postalCode: "60601",
-    country: "USA",
+    orderId: initialOrderId || "",
+    customerId: initialCustomerId || "",
+    street: "",
+    city: "",
+    postalCode: "",
+    country: "",
   });
-  const [items, setItems] = useState([
-    { productId: "PROD-001", quantity: 5 },
-    { productId: "PROD-002", quantity: 3 },
-  ]);
+  const [items, setItems] = useState<
+    Array<{ productId: string; quantity: number }>
+  >(initialItems || []);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (initialOrderId) {
+      setFormData((prev) => ({
+        ...prev,
+        orderId: initialOrderId,
+      }));
+    }
+    if (initialCustomerId) {
+      setFormData((prev) => ({
+        ...prev,
+        customerId: initialCustomerId,
+      }));
+    }
+    if (initialItems && initialItems.length > 0) {
+      setItems(initialItems);
+    }
+  }, [initialOrderId, initialCustomerId, initialItems]);
 
   const addItem = () => {
     setItems([...items, { productId: "PROD-001", quantity: 1 }]);
@@ -103,6 +126,7 @@ function InvoiceForm({
             total: calculateTotal(),
             city: formData.city,
             invoiceNumber: data.invoiceNumber,
+            items: items, // Store items for later use in shipping
           },
         });
         setMessage({
@@ -250,6 +274,19 @@ export const InvoicePage = ({
   onInvoiceAdded: (invoice: WorkflowItem) => void;
 }) => {
   const [message, setMessage] = useState<Message | null>(null);
+  const [formState, setFormState] = useState({
+    orderId: "",
+    customerId: "",
+    items: [] as Array<{ productId: string; quantity: number }>,
+  });
+
+  const handleOrderClick = (order: WorkflowItem) => {
+    setFormState({
+      orderId: order.id,
+      customerId: order.customerId,
+      items: order.details?.items || [],
+    });
+  };
 
   return (
     <div className="p-8 max-w-6xl mx-auto space-y-8">
@@ -280,36 +317,43 @@ export const InvoicePage = ({
       {workflowState.orders.length > 0 && (
         <div className="bg-[#1a1c2e] border border-white/10 rounded-xl p-6">
           <h3 className="text-xl font-bold mb-4">
-            📦 Available Orders (to Invoice)
+            📦 Available Orders (click to populate form)
           </h3>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-white/10">
-                  <th className="text-left py-3 px-4">Order ID</th>
-                  <th className="text-left py-3 px-4">Customer ID</th>
-                  <th className="text-left py-3 px-4">City</th>
-                  <th className="text-left py-3 px-4">Total</th>
-                  <th className="text-left py-3 px-4">Items</th>
-                  <th className="text-left py-3 px-4">Status</th>
+                  <th className="text-center py-3 px-4">Order ID</th>
+                  <th className="text-center py-3 px-4">Customer ID</th>
+                  <th className="text-center py-3 px-4">City</th>
+                  <th className="text-center py-3 px-4">Total</th>
+                  <th className="text-center py-3 px-4">Items</th>
+                  <th className="text-center py-3 px-4">Status</th>
                 </tr>
               </thead>
               <tbody>
                 {workflowState.orders.map((order) => (
                   <tr
                     key={order.id}
-                    className="border-b border-white/5 hover:bg-white/5"
+                    onClick={() => handleOrderClick(order)}
+                    className="border-b border-white/5 hover:bg-white/5 cursor-pointer"
                   >
-                    <td className="py-3 px-4 font-mono text-blue-400">
+                    <td className="text-center py-3 px-4 font-mono text-blue-400">
                       {order.id}
                     </td>
-                    <td className="py-3 px-4">{order.customerId}</td>
-                    <td className="py-3 px-4">{order.details?.city}</td>
-                    <td className="py-3 px-4 text-green-400">
+                    <td className="text-center py-3 px-4">
+                      {order.customerId}
+                    </td>
+                    <td className="text-center py-3 px-4">
+                      {order.details?.city}
+                    </td>
+                    <td className="text-center py-3 px-4 text-green-400">
                       ${order.details?.total}
                     </td>
-                    <td className="py-3 px-4">{order.details?.itemCount}</td>
-                    <td className="py-3 px-4">
+                    <td className="text-center py-3 px-4">
+                      {order.details?.itemCount}
+                    </td>
+                    <td className="text-center py-3 px-4">
                       <span className="bg-blue-500/20 text-blue-400 px-3 py-1 rounded-full text-xs">
                         Ready
                       </span>
@@ -322,7 +366,13 @@ export const InvoicePage = ({
         </div>
       )}
 
-      <InvoiceForm setMessage={setMessage} onInvoiceAdded={onInvoiceAdded} />
+      <InvoiceForm
+        setMessage={setMessage}
+        onInvoiceAdded={onInvoiceAdded}
+        initialOrderId={formState.orderId}
+        initialCustomerId={formState.customerId}
+        initialItems={formState.items}
+      />
 
       {workflowState.invoices.length > 0 && (
         <div className="bg-[#1a1c2e] border border-white/10 rounded-xl p-6">
@@ -331,12 +381,12 @@ export const InvoicePage = ({
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-white/10">
-                  <th className="text-left py-3 px-4">Invoice ID</th>
-                  <th className="text-left py-3 px-4">From Order</th>
-                  <th className="text-left py-3 px-4">Customer ID</th>
-                  <th className="text-left py-3 px-4">City</th>
-                  <th className="text-left py-3 px-4">Total</th>
-                  <th className="text-left py-3 px-4">Status</th>
+                  <th className="text-center py-3 px-4">Invoice ID</th>
+                  <th className="text-center py-3 px-4">From Order</th>
+                  <th className="text-center py-3 px-4">Customer ID</th>
+                  <th className="text-center py-3 px-4">City</th>
+                  <th className="text-center py-3 px-4">Total</th>
+                  <th className="text-center py-3 px-4">Status</th>
                 </tr>
               </thead>
               <tbody>
@@ -345,18 +395,22 @@ export const InvoicePage = ({
                     key={invoice.id}
                     className="border-b border-white/5 hover:bg-white/5"
                   >
-                    <td className="py-3 px-4 font-mono text-purple-400">
+                    <td className="text-center py-3 px-4 font-mono text-purple-400">
                       {invoice.id}
                     </td>
-                    <td className="py-3 px-4 font-mono text-blue-400">
+                    <td className="text-center py-3 px-4 font-mono text-blue-400">
                       {invoice.details?.orderId}
                     </td>
-                    <td className="py-3 px-4">{invoice.customerId}</td>
-                    <td className="py-3 px-4">{invoice.details?.city}</td>
-                    <td className="py-3 px-4 text-green-400">
+                    <td className="text-center py-3 px-4">
+                      {invoice.customerId}
+                    </td>
+                    <td className="text-center py-3 px-4">
+                      {invoice.details?.city}
+                    </td>
+                    <td className="text-center py-3 px-4 text-green-400">
                       ${invoice.details?.total}
                     </td>
-                    <td className="py-3 px-4">
+                    <td className="text-center py-3 px-4">
                       <span className="bg-purple-500/20 text-purple-400 px-3 py-1 rounded-full text-xs">
                         {invoice.status}
                       </span>

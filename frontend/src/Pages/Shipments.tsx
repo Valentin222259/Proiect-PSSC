@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Trash2,
   Plus,
@@ -26,23 +26,46 @@ interface Message {
 function ShipmentForm({
   setMessage,
   onShipmentAdded,
+  initialOrderId,
+  initialCustomerId,
+  initialItems,
 }: {
   setMessage: (msg: Message) => void;
   onShipmentAdded: (shipment: WorkflowItem) => void;
+  initialOrderId?: string;
+  initialCustomerId?: string;
+  initialItems?: Array<{ productId: string; quantity: number }>;
 }) {
   const [formData, setFormData] = useState({
-    orderId: "ORD-001",
-    customerId: "CUST-001",
-    street: "456 Shipping Lane",
-    city: "Los Angeles",
-    postalCode: "90001",
-    country: "USA",
+    orderId: initialOrderId || "",
+    customerId: initialCustomerId || "",
+    street: "",
+    city: "",
+    postalCode: "",
+    country: "",
   });
-  const [items, setItems] = useState([
-    { productId: "PROD-001", quantity: 5 },
-    { productId: "PROD-002", quantity: 3 },
-  ]);
+  const [items, setItems] = useState<
+    Array<{ productId: string; quantity: number }>
+  >(initialItems || []);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (initialOrderId) {
+      setFormData((prev) => ({
+        ...prev,
+        orderId: initialOrderId,
+      }));
+    }
+    if (initialCustomerId) {
+      setFormData((prev) => ({
+        ...prev,
+        customerId: initialCustomerId,
+      }));
+    }
+    if (initialItems && initialItems.length > 0) {
+      setItems(initialItems);
+    }
+  }, [initialOrderId, initialCustomerId, initialItems]);
 
   const addItem = () => {
     setItems([...items, { productId: "PROD-001", quantity: 1 }]);
@@ -242,6 +265,19 @@ export const ShipmentPage = ({
   onShipmentAdded: (shipment: WorkflowItem) => void;
 }) => {
   const [message, setMessage] = useState<Message | null>(null);
+  const [formState, setFormState] = useState({
+    orderId: "",
+    customerId: "",
+    items: [] as Array<{ productId: string; quantity: number }>,
+  });
+
+  const handleInvoiceClick = (invoice: WorkflowItem) => {
+    setFormState({
+      orderId: invoice.details?.orderId || "",
+      customerId: invoice.customerId,
+      items: invoice.details?.items || [],
+    });
+  };
 
   return (
     <div className="p-8 max-w-6xl mx-auto space-y-8">
@@ -272,38 +308,43 @@ export const ShipmentPage = ({
       {workflowState.invoices.length > 0 && (
         <div className="bg-[#1a1c2e] border border-white/10 rounded-xl p-6">
           <h3 className="text-xl font-bold mb-4">
-            📄 Available Invoices (to Ship)
+            📄 Available Invoices (click to populate form)
           </h3>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-white/10">
-                  <th className="text-left py-3 px-4">Invoice ID</th>
-                  <th className="text-left py-3 px-4">Order ID</th>
-                  <th className="text-left py-3 px-4">Customer ID</th>
-                  <th className="text-left py-3 px-4">City</th>
-                  <th className="text-left py-3 px-4">Total</th>
-                  <th className="text-left py-3 px-4">Status</th>
+                  <th className="text-center py-3 px-4">Invoice ID</th>
+                  <th className="text-center py-3 px-4">Order ID</th>
+                  <th className="text-center py-3 px-4">Customer ID</th>
+                  <th className="text-center py-3 px-4">City</th>
+                  <th className="text-center py-3 px-4">Total</th>
+                  <th className="text-center py-3 px-4">Status</th>
                 </tr>
               </thead>
               <tbody>
                 {workflowState.invoices.map((invoice) => (
                   <tr
                     key={invoice.id}
-                    className="border-b border-white/5 hover:bg-white/5"
+                    onClick={() => handleInvoiceClick(invoice)}
+                    className="border-b border-white/5 hover:bg-white/5 cursor-pointer"
                   >
-                    <td className="py-3 px-4 font-mono text-purple-400">
+                    <td className="text-center py-3 px-4 font-mono text-purple-400">
                       {invoice.id}
                     </td>
-                    <td className="py-3 px-4 font-mono text-blue-400">
+                    <td className="text-center py-3 px-4 font-mono text-blue-400">
                       {invoice.details?.orderId}
                     </td>
-                    <td className="py-3 px-4">{invoice.customerId}</td>
-                    <td className="py-3 px-4">{invoice.details?.city}</td>
-                    <td className="py-3 px-4 text-green-400">
+                    <td className="text-center py-3 px-4">
+                      {invoice.customerId}
+                    </td>
+                    <td className="text-center py-3 px-4">
+                      {invoice.details?.city}
+                    </td>
+                    <td className="text-center py-3 px-4 text-green-400">
                       ${invoice.details?.total}
                     </td>
-                    <td className="py-3 px-4">
+                    <td className="text-center py-3 px-4">
                       <span className="bg-purple-500/20 text-purple-400 px-3 py-1 rounded-full text-xs">
                         Ready
                       </span>
@@ -316,7 +357,13 @@ export const ShipmentPage = ({
         </div>
       )}
 
-      <ShipmentForm setMessage={setMessage} onShipmentAdded={onShipmentAdded} />
+      <ShipmentForm
+        setMessage={setMessage}
+        onShipmentAdded={onShipmentAdded}
+        initialOrderId={formState.orderId}
+        initialCustomerId={formState.customerId}
+        initialItems={formState.items}
+      />
 
       {workflowState.completedWorkflows.length > 0 && (
         <div className="bg-gradient-to-r from-green-900/20 to-blue-900/20 border border-green-500/30 rounded-xl p-6">
@@ -327,13 +374,13 @@ export const ShipmentPage = ({
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-green-500/20">
-                  <th className="text-left py-3 px-4">Shipment ID</th>
-                  <th className="text-left py-3 px-4">Order ID</th>
-                  <th className="text-left py-3 px-4">Customer ID</th>
-                  <th className="text-left py-3 px-4">Tracking #</th>
-                  <th className="text-left py-3 px-4">Carrier</th>
-                  <th className="text-left py-3 px-4">Destination</th>
-                  <th className="text-left py-3 px-4">Status</th>
+                  <th className="text-center py-3 px-4">Shipment ID</th>
+                  <th className="text-center py-3 px-4">Order ID</th>
+                  <th className="text-center py-3 px-4">Customer ID</th>
+                  <th className="text-center py-3 px-4">Tracking #</th>
+                  <th className="text-center py-3 px-4">Carrier</th>
+                  <th className="text-center py-3 px-4">Destination</th>
+                  <th className="text-center py-3 px-4">Status</th>
                 </tr>
               </thead>
               <tbody>
@@ -342,20 +389,26 @@ export const ShipmentPage = ({
                     key={workflow.id}
                     className="border-b border-green-500/10 hover:bg-green-500/5"
                   >
-                    <td className="py-3 px-4 font-mono text-green-400">
+                    <td className="text-center py-3 px-4 font-mono text-green-400">
                       {workflow.id}
                     </td>
-                    <td className="py-3 px-4 font-mono text-blue-400">
+                    <td className="text-center py-3 px-4 font-mono text-blue-400">
                       {workflow.details?.orderId}
                     </td>
-                    <td className="py-3 px-4">{workflow.customerId}</td>
-                    <td className="py-3 px-4 font-mono text-yellow-400">
+                    <td className="text-center py-3 px-4">
+                      {workflow.customerId}
+                    </td>
+                    <td className="text-center py-3 px-4 font-mono text-yellow-400">
                       {workflow.details?.trackingNumber}
                     </td>
-                    <td className="py-3 px-4">{workflow.details?.carrier}</td>
-                    <td className="py-3 px-4">{workflow.details?.city}</td>
-                    <td className="py-3 px-4">
-                      <span className="bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 w-fit">
+                    <td className="text-center py-3 px-4">
+                      {workflow.details?.carrier}
+                    </td>
+                    <td className="text-center py-3 px-4">
+                      {workflow.details?.city}
+                    </td>
+                    <td className="text-center py-3 px-4">
+                      <span className="bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 w-fit justify-center">
                         <CheckCircle size={14} /> COMPLETE
                       </span>
                     </td>
