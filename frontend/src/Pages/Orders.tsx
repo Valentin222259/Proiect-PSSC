@@ -30,7 +30,10 @@ function OrderForm({
     postalCode: "10001",
     country: "USA",
   });
-  const [items, setItems] = useState([{ productId: "PROD-001", quantity: 5 }]);
+  const [items, setItems] = useState([
+    { productId: "PROD-001", quantity: 5 },
+    { productId: "PROD-002", quantity: 3 },
+  ]);
   const [loading, setLoading] = useState(false);
 
   const addItem = () => {
