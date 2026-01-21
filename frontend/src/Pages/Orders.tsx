@@ -253,7 +253,10 @@ function OrderForm({
   return (
     <div className="bg-[#1a1c2e] border border-white/10 rounded-xl p-6 space-y-6">
       <div>
-        <label className="block text-sm font-medium mb-2">Customer ID</label>
+        <h3 className="text-lg font-semibold mb-4">Order Information</h3>
+        <label className="block text-sm font-medium mb-2">
+          Customer ID <span className="text-gray-500 text-xs\">(Required)</span>
+        </label>
         <input
           type="text"
           placeholder="e.g., CUST-001"
@@ -279,7 +282,7 @@ function OrderForm({
       <div className="grid grid-cols-2 gap-4">
         <div>
           <input
-            placeholder="Street"
+            placeholder="Street Address"
             value={formData.street}
             onChange={(e) =>
               setFormData({ ...formData, street: e.target.value })
@@ -300,7 +303,7 @@ function OrderForm({
         </div>
         <div>
           <input
-            placeholder="City"
+            placeholder="City Name"
             value={formData.city}
             onChange={(e) => setFormData({ ...formData, city: e.target.value })}
             autoComplete="off"
@@ -339,7 +342,7 @@ function OrderForm({
         </div>
         <div>
           <input
-            placeholder="Country"
+            placeholder="Country Name"
             value={formData.country}
             onChange={(e) =>
               setFormData({ ...formData, country: e.target.value })
@@ -362,7 +365,7 @@ function OrderForm({
 
       <div>
         <div className="flex justify-between items-center mb-4">
-          <h3 className="font-bold text-lg">Items</h3>
+          <h3 className="font-bold text-lg\">Order Items</h3>
           <button
             onClick={addItem}
             className="text-sm bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded-md flex items-center gap-1"
@@ -426,9 +429,13 @@ export const OrderPage = ({
 
   return (
     <div className="p-8 max-w-6xl mx-auto space-y-8">
-      <h2 className="text-3xl font-bold flex items-center gap-2">
+      <h2 className="text-3xl font-bold flex items-center gap-2 mb-2">
         <Package className="text-blue-500" /> Place Order
       </h2>
+      <p className="text-gray-400 text-sm mb-6">
+        Create a new order by entering customer details and selecting items from
+        our catalog.
+      </p>
 
       {message && (
         <div
@@ -454,7 +461,11 @@ export const OrderPage = ({
 
       {workflowState.orders.length > 0 && (
         <div className="bg-[#1a1c2e] border border-white/10 rounded-xl p-6">
-          <h3 className="text-xl font-bold mb-4">Recent Orders</h3>
+          <h3 className="text-xl font-bold mb-2">Recent Orders</h3>
+          <p className="text-gray-400 text-sm mb-4">
+            All orders placed in this session. Orders transition to "Processing"
+            once an invoice is generated.
+          </p>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>

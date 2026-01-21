@@ -484,9 +484,13 @@ export const ShipmentPage = ({
 
   return (
     <div className="p-8 max-w-6xl mx-auto space-y-8">
-      <h2 className="text-3xl font-bold flex items-center gap-2">
+      <h2 className="text-3xl font-bold flex items-center gap-2 mb-2">
         <Truck className="text-blue-500" /> Prepare Shipment
       </h2>
+      <p className="text-gray-400 text-sm mb-6">
+        Prepare shipments from existing invoices. Select an invoice to
+        auto-populate delivery details.
+      </p>
 
       {message && (
         <div
@@ -515,9 +519,13 @@ export const ShipmentPage = ({
           ),
       ).length > 0 && (
         <div className="bg-[#1a1c2e] border border-white/10 rounded-xl p-6">
-          <h3 className="text-xl font-bold mb-4">
+          <h3 className="text-xl font-bold mb-2">
             📄 Available Invoices (click to populate form)
           </h3>
+          <p className="text-gray-400 text-sm mb-4">
+            Only invoices pending shipment are shown. Click on an invoice to
+            auto-fill the form.
+          </p>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
