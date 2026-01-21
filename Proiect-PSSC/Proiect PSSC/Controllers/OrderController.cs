@@ -5,6 +5,7 @@ using Domain.Models.Commands;
 using static Domain.Events.OrderPlacedEvent;
 using Proiect_PSSC.Data;
 using Proiect_PSSC.DTOs;
+using Proiect_PSSC.Models;
 using Domain.Models.ValueObjects;
 using System;
 using System.Collections.Generic;
@@ -19,11 +20,13 @@ namespace Proiect_PSSC.Controllers
     {
         private readonly PlaceOrderWorkflow _workflow;
         private readonly ApplicationDbContext _dbContext;
+        private readonly List<Product> _products;  // ✅ Inject products from Excel
 
-        public OrderController(PlaceOrderWorkflow workflow, ApplicationDbContext dbContext)
+        public OrderController(PlaceOrderWorkflow workflow, ApplicationDbContext dbContext, List<Product> products)
         {
             _workflow = workflow;
             _dbContext = dbContext;
+            _products = products;
         }
 
         [HttpPost("place-order")]
@@ -55,17 +58,29 @@ namespace Proiect_PSSC.Controllers
 
             // 2. Mock dependencies
             Func<string, bool> checkCustomer = (id) => id.StartsWith("CUST");
-            Func<string, bool> checkProduct = (id) => true;
-            Func<string, int> getStock = (id) => 100;  
+            Func<string, bool> checkProduct = (id) => _products.Any(p => p.Id == id);
+            Func<string, int> getStock = (id) => 100;
             Func<string, int, string> reserveStock = (id, qty) => $"RES-{Guid.NewGuid().ToString().Substring(0, 8)}";
+
+            // ✅ Get prices from Excel (loaded in Program.cs)
+            Func<string, decimal> getProductPrice = (productId) =>
+            {
+                var product = _products.FirstOrDefault(p => p.Id == productId);
+                if (product != null)
+                    return product.Price;
+
+                // If product not found, throw exception
+                throw new Exception($"Product {productId} not found in price catalog");
+            };
 
             // 3. Execute workflow
             var result = _workflow.Execute(
                 command,
                 checkCustomer,
                 checkProduct,
-                getStock,        
-                reserveStock
+                getStock,
+                reserveStock,
+                getProductPrice
             );
 
             // 4. Process result and save to database if successful
@@ -87,7 +102,7 @@ namespace Proiect_PSSC.Controllers
             {
                 // Convert StockReservedOrder to DeliveredOrder
                 var stockReserved = successEvent.Order;
-                
+
                 // Create a PreparedOrder (simulate order preparation)
                 var preparedOrder = new PreparedOrder(
                     stockReserved,
