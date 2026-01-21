@@ -41,6 +41,8 @@ function InvoiceForm({
     Array<{ productId: string; quantity: number }>
   >(initialItems || []);
   const [loading, setLoading] = useState(false);
+  const hasOrderData =
+    !!initialOrderId && !!initialCustomerId && (initialItems?.length || 0) > 0;
 
   useEffect(() => {
     if (initialOrderId) {
@@ -61,14 +63,19 @@ function InvoiceForm({
   }, [initialOrderId, initialCustomerId, initialItems]);
 
   const addItem = () => {
-    setItems([...items, { productId: "PROD-001", quantity: 1 }]);
+    if (!hasOrderData) {
+      setItems([...items, { productId: "PROD-001", quantity: 1 }]);
+    }
   };
 
   const removeItem = (index: number) => {
-    setItems(items.filter((_: any, i: number) => i !== index));
+    if (!hasOrderData) {
+      setItems(items.filter((_: any, i: number) => i !== index));
+    }
   };
 
   const updateItem = (index: number, field: string, value: string | number) => {
+    if (hasOrderData) return;
     const newItems = [...items];
     newItems[index] = {
       ...newItems[index],
@@ -162,7 +169,12 @@ function InvoiceForm({
           onChange={(e: any) =>
             setFormData({ ...formData, orderId: e.target.value })
           }
-          className="bg-[#07080d] border border-white/10 rounded-lg p-2"
+          disabled={hasOrderData}
+          className={`rounded-lg p-2 border ${
+            hasOrderData
+              ? "bg-gray-700 border-gray-600 text-gray-300 cursor-not-allowed"
+              : "bg-[#07080d] border-white/10"
+          }`}
         />
         <input
           placeholder="Customer ID"
@@ -170,7 +182,12 @@ function InvoiceForm({
           onChange={(e) =>
             setFormData({ ...formData, customerId: e.target.value })
           }
-          className="bg-[#07080d] border border-white/10 rounded-lg p-2"
+          disabled={hasOrderData}
+          className={`rounded-lg p-2 border ${
+            hasOrderData
+              ? "bg-gray-700 border-gray-600 text-gray-300 cursor-not-allowed"
+              : "bg-[#07080d] border-white/10"
+          }`}
         />
       </div>
 
@@ -212,10 +229,20 @@ function InvoiceForm({
 
       <div>
         <div className="flex justify-between items-center mb-4">
-          <h3 className="font-bold text-lg">Items</h3>
+          <h3 className="font-bold text-lg">
+            Items{" "}
+            {hasOrderData && (
+              <span className="text-xs text-gray-400">(from order)</span>
+            )}
+          </h3>
           <button
             onClick={addItem}
-            className="text-sm bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded-md flex items-center gap-1"
+            disabled={hasOrderData}
+            className={`text-sm px-3 py-1 rounded-md flex items-center gap-1 ${
+              hasOrderData
+                ? "bg-gray-700 text-gray-400 cursor-not-allowed"
+                : "bg-blue-600 hover:bg-blue-700"
+            }`}
           >
             <Plus size={14} /> Add Item
           </button>
@@ -225,7 +252,12 @@ function InvoiceForm({
             <select
               value={item.productId}
               onChange={(e) => updateItem(idx, "productId", e.target.value)}
-              className="flex-1 bg-[#07080d] border border-white/10 rounded-lg p-2"
+              disabled={hasOrderData}
+              className={`flex-1 rounded-lg p-2 border ${
+                hasOrderData
+                  ? "bg-gray-700 border-gray-600 text-gray-300 cursor-not-allowed"
+                  : "bg-[#07080d] border-white/10"
+              }`}
             >
               {PRODUCTS.map((p) => (
                 <option key={p.id} value={p.id}>
@@ -238,11 +270,21 @@ function InvoiceForm({
               min="1"
               value={item.quantity}
               onChange={(e) => updateItem(idx, "quantity", e.target.value)}
-              className="w-24 bg-[#07080d] border border-white/10 rounded-lg p-2"
+              disabled={hasOrderData}
+              className={`w-24 rounded-lg p-2 border ${
+                hasOrderData
+                  ? "bg-gray-700 border-gray-600 text-gray-300 cursor-not-allowed"
+                  : "bg-[#07080d] border-white/10"
+              }`}
             />
             <button
               onClick={() => removeItem(idx)}
-              className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg"
+              disabled={hasOrderData}
+              className={`p-2 rounded-lg ${
+                hasOrderData
+                  ? "text-gray-600 cursor-not-allowed"
+                  : "text-red-500 hover:bg-red-500/10"
+              }`}
             >
               <Trash2 size={18} />
             </button>
