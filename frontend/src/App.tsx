@@ -3,11 +3,9 @@ import { useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import { Toaster } from "react-hot-toast";
 import { Sidebar } from "./components/Sidebar";
-import { Dashboard } from "./Pages/Dashboard";
 import { OrderPage } from "./Pages/Orders";
 import { InvoicePage } from "./Pages/Invoices";
 import { ShipmentPage } from "./Pages/Shipments";
-import { MyHistoryPage } from "./Pages/MyHistory";
 
 export type WorkflowItem = {
   id: string;
@@ -72,9 +70,8 @@ function App() {
       <main className="flex-1 overflow-y-auto bg-[radial-gradient(circle_at_top_right,_#1a1c2e_0%,_transparent_40%)]">
         <AnimatePresence mode="wait">
           <Routes location={location} key={location.pathname}>
-            <Route path="/" element={<Dashboard />} />
             <Route
-              path="/orders"
+              path="/"
               element={
                 <OrderPage
                   workflowState={workflowState}
@@ -100,7 +97,6 @@ function App() {
                 />
               }
             />
-            <Route path="/my-history" element={<MyHistoryPage />} />
           </Routes>
         </AnimatePresence>
       </main>

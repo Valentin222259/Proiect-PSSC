@@ -65,6 +65,32 @@ function OrderForm({
   const handleSubmit = async () => {
     setLoading(true);
     try {
+      if (
+        !formData.customerId ||
+        !formData.street ||
+        !formData.city ||
+        !formData.postalCode ||
+        !formData.country
+      ) {
+        setMessage({
+          type: "error",
+          text: "Please fill all address fields",
+          details: "All fields are required",
+        });
+        setLoading(false);
+        return;
+      }
+
+      if (!items || items.length === 0) {
+        setMessage({
+          type: "error",
+          text: "Please add at least one item",
+          details: "Order must contain items",
+        });
+        setLoading(false);
+        return;
+      }
+
       const response = await fetch(`${API_BASE}/order/place-order`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

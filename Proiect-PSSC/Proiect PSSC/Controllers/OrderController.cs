@@ -32,10 +32,26 @@ namespace Proiect_PSSC.Controllers
         [HttpPost("place-order")]
         public async Task<IActionResult> PlaceOrder([FromBody] OrderRequestDto request)
         {
+            // Validate request
+            if (request == null)
+            {
+                return BadRequest(new { Message = "Request body is required." });
+            }
+
+            if (string.IsNullOrEmpty(request.CustomerId))
+            {
+                return BadRequest(new { Message = "CustomerId is required." });
+            }
+
             // Validate AddressDto
             if (request.DeliveryAddress == null)
             {
                 return BadRequest(new { Message = "Delivery address is required." });
+            }
+
+            if (request.Items == null || request.Items.Count == 0)
+            {
+                return BadRequest(new { Message = "At least one item is required." });
             }
 
             // Convert AddressDto to pipe-delimited string format
