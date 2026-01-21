@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Trash2,
   Plus,
@@ -91,10 +91,97 @@ function ShipmentForm({
     setItems(newItems);
   };
 
+  const validateForm = () => {
+    // Street: non-empty, min 5 chars
+    if (!formData.street || formData.street.length < 5) {
+      return {
+        valid: false,
+        message: "Invalid street address",
+        details: "Must be at least 5 characters",
+      };
+    }
+    // City: non-empty, min 2 chars
+    if (!formData.city || formData.city.length < 2) {
+      return {
+        valid: false,
+        message: "Invalid city name",
+        details: "Must be at least 2 characters",
+      };
+    }
+    // Postal Code: exactly 6 digits
+    if (!/^\d{6}$/.test(formData.postalCode)) {
+      return {
+        valid: false,
+        message: "Invalid postal code",
+        details: "Must be exactly 6 digits (e.g., 435500)",
+      };
+    }
+    // Country: non-empty, min 2 chars
+    if (!formData.country || formData.country.length < 2) {
+      return {
+        valid: false,
+        message: "Invalid country name",
+        details: "Must be at least 2 characters",
+      };
+    }
+    return { valid: true, message: "" };
+  };
+
+  const isFieldValid = (field: string): boolean => {
+    switch (field) {
+      case "street":
+        return formData.street.length >= 5;
+      case "city":
+        return formData.city.length >= 2;
+      case "postalCode":
+        return /^\d{6}$/.test(formData.postalCode);
+      case "country":
+        return formData.country.length >= 2;
+      default:
+        return true;
+    }
+  };
+
+  const getFieldError = (field: string): string => {
+    switch (field) {
+      case "postalCode":
+        return formData.postalCode
+          ? /^\d{6}$/.test(formData.postalCode)
+            ? ""
+            : "Must be 6 digits"
+          : "Required";
+      case "street":
+        return formData.street.length < 5 && formData.street.length > 0
+          ? "Min 5 chars"
+          : "";
+      case "city":
+        return formData.city.length < 2 && formData.city.length > 0
+          ? "Min 2 chars"
+          : "";
+      case "country":
+        return formData.country.length < 2 && formData.country.length > 0
+          ? "Min 2 chars"
+          : "";
+      default:
+        return "";
+    }
+  };
+
   const handleSubmit = async () => {
     setLoading(true);
 
     try {
+      const validation = validateForm();
+      if (!validation.valid) {
+        setMessage({
+          type: "error",
+          text: validation.message,
+          details: validation.details,
+        });
+        setLoading(false);
+        return;
+      }
+
       const response = await fetch(`${API_BASE}/shipment/prepare-shipment`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -188,36 +275,91 @@ function ShipmentForm({
       <div>
         <h3 className="font-semibold mb-2">Delivery Address</h3>
         <div className="grid grid-cols-2 gap-4">
-          <input
-            placeholder="Street"
-            value={formData.street}
-            onChange={(e) =>
-              setFormData({ ...formData, street: e.target.value })
-            }
-            className="bg-[#07080d] border border-white/10 rounded-lg p-2"
-          />
-          <input
-            placeholder="City"
-            value={formData.city}
-            onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-            className="bg-[#07080d] border border-white/10 rounded-lg p-2"
-          />
-          <input
-            placeholder="Postal Code"
-            value={formData.postalCode}
-            onChange={(e) =>
-              setFormData({ ...formData, postalCode: e.target.value })
-            }
-            className="bg-[#07080d] border border-white/10 rounded-lg p-2"
-          />
-          <input
-            placeholder="Country"
-            value={formData.country}
-            onChange={(e) =>
-              setFormData({ ...formData, country: e.target.value })
-            }
-            className="bg-[#07080d] border border-white/10 rounded-lg p-2"
-          />
+          <div>
+            <input
+              placeholder="Street"
+              value={formData.street}
+              onChange={(e) =>
+                setFormData({ ...formData, street: e.target.value })
+              }
+              autoComplete="off"
+              name={`street-${Math.random()}`}
+              className={`w-full bg-[#07080d] border rounded-lg p-2 ${
+                formData.street && !isFieldValid("street")
+                  ? "border-red-500"
+                  : "border-white/10"
+              }`}
+            />
+            {formData.street && getFieldError("street") && (
+              <p className="text-red-400 text-xs mt-1">
+                {getFieldError("street")}
+              </p>
+            )}
+          </div>
+          <div>
+            <input
+              placeholder="City"
+              value={formData.city}
+              onChange={(e) =>
+                setFormData({ ...formData, city: e.target.value })
+              }
+              autoComplete="off"
+              name={`city-${Math.random()}`}
+              className={`w-full bg-[#07080d] border rounded-lg p-2 ${
+                formData.city && !isFieldValid("city")
+                  ? "border-red-500"
+                  : "border-white/10"
+              }`}
+            />
+            {formData.city && getFieldError("city") && (
+              <p className="text-red-400 text-xs mt-1">
+                {getFieldError("city")}
+              </p>
+            )}
+          </div>
+          <div>
+            <input
+              placeholder="Postal Code (6 digits)"
+              value={formData.postalCode}
+              onChange={(e) =>
+                setFormData({ ...formData, postalCode: e.target.value })
+              }
+              autoComplete="off"
+              name={`postalCode-${Math.random()}`}
+              maxLength={6}
+              className={`w-full bg-[#07080d] border rounded-lg p-2 ${
+                formData.postalCode && !isFieldValid("postalCode")
+                  ? "border-red-500"
+                  : "border-white/10"
+              }`}
+            />
+            {formData.postalCode && getFieldError("postalCode") && (
+              <p className="text-red-400 text-xs mt-1">
+                {getFieldError("postalCode")}
+              </p>
+            )}
+          </div>
+          <div>
+            <input
+              placeholder="Country"
+              value={formData.country}
+              onChange={(e) =>
+                setFormData({ ...formData, country: e.target.value })
+              }
+              autoComplete="off"
+              name={`country-${Math.random()}`}
+              className={`w-full bg-[#07080d] border rounded-lg p-2 ${
+                formData.country && !isFieldValid("country")
+                  ? "border-red-500"
+                  : "border-white/10"
+              }`}
+            />
+            {formData.country && getFieldError("country") && (
+              <p className="text-red-400 text-xs mt-1">
+                {getFieldError("country")}
+              </p>
+            )}
+          </div>
         </div>
       </div>
 
@@ -312,6 +454,7 @@ export const ShipmentPage = ({
     customerId: "",
     items: [] as Array<{ productId: string; quantity: number }>,
   });
+  const completedWorkflowsRef = useRef<HTMLDivElement>(null);
 
   const handleInvoiceClick = (invoice: WorkflowItem) => {
     setFormState({
@@ -320,6 +463,14 @@ export const ShipmentPage = ({
       items: invoice.details?.items || [],
     });
   };
+
+  useEffect(() => {
+    if (message?.type === "success" && completedWorkflowsRef.current) {
+      setTimeout(() => {
+        completedWorkflowsRef.current?.scrollIntoView({ behavior: "smooth" });
+      }, 500);
+    }
+  }, [message]);
 
   return (
     <div className="p-8 max-w-6xl mx-auto space-y-8">
@@ -408,7 +559,10 @@ export const ShipmentPage = ({
       />
 
       {workflowState.completedWorkflows.length > 0 && (
-        <div className="bg-gradient-to-r from-green-900/20 to-blue-900/20 border border-green-500/30 rounded-xl p-6">
+        <div
+          ref={completedWorkflowsRef}
+          className="bg-gradient-to-r from-green-900/20 to-blue-900/20 border border-green-500/30 rounded-xl p-6"
+        >
           <h3 className="text-2xl font-bold mb-4 flex items-center gap-2 text-green-400">
             <Trophy size={32} /> Completed End-to-End Workflows
           </h3>
