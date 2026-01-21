@@ -43,14 +43,12 @@ namespace Proiect_PSSC.Services
                             // Validate inputs
                             if (string.IsNullOrWhiteSpace(productId) || string.IsNullOrWhiteSpace(priceText))
                             {
-                                Console.WriteLine($"Skipping row with missing data: {productId}");
                                 continue;
                             }
 
                             // Parse price
                             if (!decimal.TryParse(priceText, out var price) || price < 0)
                             {
-                                Console.WriteLine($"Invalid price for product {productId}: {priceText}");
                                 continue;
                             }
 
@@ -61,22 +59,17 @@ namespace Proiect_PSSC.Services
                                 Price = price
                             });
                         }
-                        catch (Exception ex)
+                        catch (Exception)
                         {
-                            Console.WriteLine($"Error parsing row: {ex.Message}");
                             continue;
                         }
                     }
                 }
 
-                Console.WriteLine($"Successfully loaded {products.Count} products from Excel");
                 return products;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                Console.WriteLine($"Error loading Excel file: {ex.Message}");
-                Console.WriteLine("Loading fallback products from configuration...");
-                
                 // Fallback: Use hardcoded products if Excel fails to load
                 return new List<Product>
                 {
