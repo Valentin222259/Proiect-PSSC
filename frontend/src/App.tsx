@@ -1,4 +1,5 @@
 import { Routes, Route, useLocation } from "react-router-dom";
+import { useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import { Toaster } from "react-hot-toast";
 import { Sidebar } from "./components/Sidebar";
@@ -8,8 +9,53 @@ import { InvoicePage } from "./Pages/Invoices";
 import { ShipmentPage } from "./Pages/Shipments";
 import { MyHistoryPage } from "./Pages/MyHistory";
 
+export type WorkflowItem = {
+  id: string;
+  customerId: string;
+  status: "pending" | "completed";
+  details?: any;
+};
+
+export type WorkflowState = {
+  orders: WorkflowItem[];
+  invoices: WorkflowItem[];
+  shipments: WorkflowItem[];
+  completedWorkflows: WorkflowItem[];
+};
+
 function App() {
   const location = useLocation();
+  const [workflowState, setWorkflowState] = useState<WorkflowState>({
+    orders: [],
+    invoices: [],
+    shipments: [],
+    completedWorkflows: [],
+  });
+
+  const addOrder = (order: WorkflowItem) => {
+    setWorkflowState((prev) => ({
+      ...prev,
+      orders: [...prev.orders, order],
+    }));
+  };
+
+  const addInvoice = (invoice: WorkflowItem) => {
+    setWorkflowState((prev) => ({
+      ...prev,
+      invoices: [...prev.invoices, invoice],
+    }));
+  };
+
+  const addShipment = (shipment: WorkflowItem) => {
+    setWorkflowState((prev) => ({
+      ...prev,
+      shipments: [...prev.shipments, shipment],
+      completedWorkflows: [
+        ...prev.completedWorkflows,
+        { ...shipment, status: "completed" },
+      ],
+    }));
+  };
 
   return (
     <div className="flex h-screen bg-[#07080d] text-white overflow-hidden">
@@ -27,9 +73,33 @@ function App() {
         <AnimatePresence mode="wait">
           <Routes location={location} key={location.pathname}>
             <Route path="/" element={<Dashboard />} />
-            <Route path="/orders" element={<OrderPage />} />
-            <Route path="/invoices" element={<InvoicePage />} />
-            <Route path="/shipments" element={<ShipmentPage />} />
+            <Route
+              path="/orders"
+              element={
+                <OrderPage
+                  workflowState={workflowState}
+                  onOrderAdded={addOrder}
+                />
+              }
+            />
+            <Route
+              path="/invoices"
+              element={
+                <InvoicePage
+                  workflowState={workflowState}
+                  onInvoiceAdded={addInvoice}
+                />
+              }
+            />
+            <Route
+              path="/shipments"
+              element={
+                <ShipmentPage
+                  workflowState={workflowState}
+                  onShipmentAdded={addShipment}
+                />
+              }
+            />
             <Route path="/my-history" element={<MyHistoryPage />} />
           </Routes>
         </AnimatePresence>
