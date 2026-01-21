@@ -1,69 +1,260 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { InvoiceApi } from "../api/client";
-import toast from "react-hot-toast";
+import { useState } from "react";
+import { Trash2, Plus, AlertCircle, CheckCircle } from "lucide-react";
 
-export const InvoicePage = () => {
-  const navigate = useNavigate();
-  const [orderId, setOrderId] = useState("");
+const API_BASE = "http://localhost:5080";
+
+const PRODUCTS = [
+  { id: "PROD-001", name: "Widget A", price: 29.99 },
+  { id: "PROD-002", name: "Widget B", price: 49.99 },
+  { id: "PROD-003", name: "Gadget X", price: 15.5 },
+];
+
+interface Message {
+  type: "success" | "error";
+  text: string;
+  details?: string;
+}
+
+function InvoiceForm({ setMessage }: { setMessage: (msg: Message) => void }) {
+  const [formData, setFormData] = useState({
+    orderId: "ORD-001",
+    customerId: "CUST-001",
+    street: "789 Billing Avenue",
+    city: "Chicago",
+    postalCode: "60601",
+    country: "USA",
+  });
+  const [items, setItems] = useState([{ productId: "PROD-001", quantity: 5 }]);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    setOrderId(localStorage.getItem("lastOrderId") || "");
-  }, []);
+  const addItem = () => {
+    setItems([...items, { productId: "PROD-001", quantity: 1 }]);
+  };
 
-  const handleInvoice = async () => {
+  const removeItem = (index: number) => {
+    setItems(items.filter((_: any, i: number) => i !== index));
+  };
+
+  const updateItem = (index: number, field: string, value: string | number) => {
+    const newItems = [...items];
+    newItems[index] = {
+      ...newItems[index],
+      [field]: field === "quantity" ? parseInt(String(value)) || 0 : value,
+    };
+    setItems(newItems);
+  };
+
+  const calculateTotal = () => {
+    return items
+      .reduce((sum: number, item: any) => {
+        const product = PRODUCTS.find((p: any) => p.id === item.productId);
+        return sum + (product?.price || 0) * item.quantity;
+      }, 0)
+      .toFixed(2);
+  };
+
+  const handleSubmit = async () => {
     setLoading(true);
+
     try {
-      await InvoiceApi.generateInvoice({
-        orderId: orderId.startsWith("ORD-")
-          ? orderId
-          : `ORD-${orderId.replace(/-/g, "")}`,
-        customerId: "CUST-777",
-        billingAddress: {
-          street: "Suceava 10",
-          city: "Suceava",
-          postalCode: "720001",
-          country: "Romania",
-        },
-        items: [{ productId: "PROD-101", quantity: 1, unitPrice: "4500" }],
+      const response = await fetch(`${API_BASE}/invoice/generate-invoice`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orderId: formData.orderId,
+          customerId: formData.customerId,
+          billingAddress: {
+            street: formData.street,
+            city: formData.city,
+            postalCode: formData.postalCode,
+            country: formData.country,
+          },
+          items: items.map((item: any) => {
+            const product = PRODUCTS.find((p: any) => p.id === item.productId);
+            return {
+              productId: item.productId,
+              quantity: item.quantity,
+              unitPrice: product?.price.toString() || "0",
+            };
+          }),
+        }),
       });
 
-      const history = JSON.parse(localStorage.getItem("ordersHistory") || "[]");
-      const updated = history.map((o: any) =>
-        o.id === orderId ? { ...o, status: "Facturată" } : o
-      );
-      localStorage.setItem("ordersHistory", JSON.stringify(updated));
+      const data = await response.json();
 
-      toast.success("Factură emisă!");
-      setTimeout(() => navigate("/shipments"), 1000);
-    } catch (e) {
-      toast.error("Eroare fiscală");
+      if (response.ok) {
+        setMessage({
+          type: "success",
+          text: "Invoice generated successfully!",
+          details: `Invoice #${data.invoiceNumber} - Total: $${calculateTotal()}`,
+        });
+        setTimeout(() => setMessage(null as any), 5000);
+      } else {
+        setMessage({
+          type: "error",
+          text: "Invoice generation failed",
+          details: data.message || JSON.stringify(data.reasons),
+        });
+      }
+    } catch (error) {
+      setMessage({
+        type: "error",
+        text: "Connection error",
+        details: error instanceof Error ? error.message : String(error),
+      });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="p-20 text-center font-sans">
-      <h2 className="font-heading text-3xl font-extrabold uppercase mb-12 text-white italic tracking-tighter">
-        Validare Financiară
-      </h2>
-      <div className="bg-[#11131f] p-12 rounded-[3rem] border border-white/10 inline-block w-full max-w-2xl">
-        <p className="font-heading text-[10px] text-white/20 uppercase tracking-[0.3em] mb-4">
-          Comandă detectată:
-        </p>
-        <p className="font-mono text-5xl font-black text-blue-500 mb-12 tracking-tighter">
-          {orderId || "---"}
-        </p>
-        <button
-          onClick={handleInvoice}
-          disabled={loading || !orderId}
-          className="w-full py-6 bg-emerald-600 rounded-2xl font-heading font-extrabold text-xs tracking-widest hover:bg-emerald-500 transition-all text-white"
-        >
-          EMITE FACTURA AUTOMAT →
-        </button>
+    <div className="p-8 max-w-4xl mx-auto">
+      <h2 className="text-3xl font-bold mb-6">Generate Invoice</h2>
+
+      <div className="grid grid-cols-2 gap-4">
+        <input
+          placeholder="Order ID"
+          value={formData.orderId}
+          onChange={(e: any) =>
+            setFormData({ ...formData, orderId: e.target.value })
+          }
+          className="bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-white placeholder-slate-500"
+        />
+        <input
+          placeholder="Customer ID"
+          value={formData.customerId}
+          onChange={(e) =>
+            setFormData({ ...formData, customerId: e.target.value })
+          }
+          className="bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-white placeholder-slate-500"
+        />
       </div>
+
+      <div>
+        <h3 className="text-lg font-semibold text-white mb-4">
+          Billing Address
+        </h3>
+        <div className="grid grid-cols-2 gap-4">
+          <input
+            placeholder="Street"
+            value={formData.street}
+            onChange={(e) =>
+              setFormData({ ...formData, street: e.target.value })
+            }
+            className="bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-white placeholder-slate-500"
+          />
+          <input
+            placeholder="City"
+            value={formData.city}
+            onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+            className="bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-white placeholder-slate-500"
+          />
+          <input
+            placeholder="Postal Code"
+            value={formData.postalCode}
+            onChange={(e) =>
+              setFormData({ ...formData, postalCode: e.target.value })
+            }
+            className="bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-white placeholder-slate-500"
+          />
+          <input
+            placeholder="Country"
+            value={formData.country}
+            onChange={(e) =>
+              setFormData({ ...formData, country: e.target.value })
+            }
+            className="bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-white placeholder-slate-500"
+          />
+        </div>
+      </div>
+
+      <div>
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold text-white">Items</h3>
+          <button
+            onClick={addItem}
+            className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg"
+          >
+            <Plus size={18} /> Add Item
+          </button>
+        </div>
+        <div className="space-y-3">
+          {items.map((item, idx) => (
+            <div key={idx} className="flex gap-3 items-end">
+              <select
+                value={item.productId}
+                onChange={(e) => updateItem(idx, "productId", e.target.value)}
+                className="flex-1 bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-white"
+              >
+                {PRODUCTS.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} (${p.price})
+                  </option>
+                ))}
+              </select>
+              <input
+                type="number"
+                min="1"
+                value={item.quantity}
+                onChange={(e) => updateItem(idx, "quantity", e.target.value)}
+                className="w-24 bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-white"
+              />
+              <button
+                onClick={() => removeItem(idx)}
+                className="bg-red-600 hover:bg-red-700 text-white p-2 rounded-lg"
+              >
+                <Trash2 size={18} />
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="bg-slate-700 rounded-lg p-4">
+        <p className="text-slate-300">
+          Total Amount:{" "}
+          <span className="text-2xl font-bold text-green-400">
+            ${calculateTotal()}
+          </span>
+        </p>
+      </div>
+
+      <button
+        onClick={handleSubmit}
+        disabled={loading}
+        className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-600 text-white font-semibold py-3 rounded-lg transition-all"
+      >
+        {loading ? "Generating Invoice..." : "Generate Invoice"}
+      </button>
+    </div>
+  );
+}
+
+export const InvoicePage = () => {
+  const [message, setMessage] = useState<Message | null>(null);
+
+  return (
+    <div>
+      {message && (
+        <div
+          className={`mb-6 p-4 rounded-lg flex gap-3 ${
+            message.type === "success"
+              ? "bg-green-900/30 border border-green-700"
+              : "bg-red-900/30 border border-red-700"
+          }`}
+        >
+          {message.type === "success" ? (
+            <CheckCircle className="text-green-400" />
+          ) : (
+            <AlertCircle className="text-red-400" />
+          )}
+          <div>
+            <p>{message.text}</p>
+            {message.details && <p className="text-sm">{message.details}</p>}
+          </div>
+        </div>
+      )}
+      <InvoiceForm setMessage={setMessage} />
     </div>
   );
 };

@@ -1,276 +1,209 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { OrderApi } from "../api/client";
-import toast from "react-hot-toast";
-import { motion } from "framer-motion";
+import { Trash2, Plus, Package, AlertCircle, CheckCircle } from "lucide-react";
+
+const API_BASE = "http://localhost:5080";
+
+const PRODUCTS = [
+  { id: "PROD-001", name: "Widget A", price: 29.99 },
+  { id: "PROD-002", name: "Widget B", price: 49.99 },
+  { id: "PROD-003", name: "Gadget X", price: 15.5 },
+];
 
 export const OrderPage = () => {
-  const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<any>({});
-
-  // Inițializare stari
-  const [order, setOrder] = useState({
-    customerId: "CUST-",
-    deliveryAddress: {
-      street: "",
-      city: "",
-      postalCode: "",
-      country: "Romania",
-    },
-    items: [{ productId: "PROD-", quantity: 1 }],
+  const [message, setMessage] = useState<{
+    type: "success" | "error";
+    text: string;
+    details?: string;
+  } | null>(null);
+  const [formData, setFormData] = useState({
+    customerId: "CUST-001",
+    street: "123 Main Street",
+    city: "New York",
+    postalCode: "10001",
+    country: "USA",
   });
+  const [items, setItems] = useState([{ productId: "PROD-001", quantity: 5 }]);
+  const [loading, setLoading] = useState(false);
 
-  const validate = () => {
-    let newErrors: any = {};
-    // Verificare campuri obligatorii
-    if (order.customerId.length <= 5)
-      newErrors.customerId = "Introduceți cifrele după CUST-";
-    if (!/^\d{6}$/.test(order.deliveryAddress.postalCode))
-      newErrors.postalCode = "Necesită 6 cifre";
-    if (order.items[0].productId.length <= 5)
-      newErrors.productId = "Introduceți cifrele după PROD-";
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+  const addItem = () =>
+    setItems([...items, { productId: "PROD-001", quantity: 1 }]);
+  const removeItem = (index: number) =>
+    setItems(items.filter((_, i) => i !== index));
+  const updateItem = (index: number, field: string, value: string) => {
+    const newItems = [...items] as any;
+    newItems[index][field] =
+      field === "quantity" ? parseInt(value) || 0 : value;
+    setItems(newItems);
   };
 
-  const handlePlaceOrder = async () => {
-    if (!validate()) return toast.error("Date incomplete!");
+  const calculateTotal = () =>
+    items
+      .reduce((sum, item) => {
+        const product = PRODUCTS.find((p) => p.id === item.productId);
+        return sum + (product?.price || 0) * item.quantity;
+      }, 0)
+      .toFixed(2);
 
+  const handleSubmit = async () => {
     setLoading(true);
     try {
-      const response = await OrderApi.placeOrder(order);
-      localStorage.setItem("lastOrderId", response.data.orderId);
-
-      // istoricul personal
-      const newEntry = {
-        internalId: Date.now().toString(), // ID pentru stergere
-        orderId: response.data.orderId,
-        customerId: order.customerId,
-        street: order.deliveryAddress.street,
-        city: order.deliveryAddress.city,
-        postalCode: order.deliveryAddress.postalCode,
-        productId: order.items[0].productId,
-        quantity: order.items[0].quantity,
-        date: new Date().toLocaleString("ro-RO"),
-      };
-
-      // Salvare in lista
-      const myHistory = JSON.parse(
-        localStorage.getItem("userCreatedOrders") || "[]",
-      );
-      localStorage.setItem(
-        "userCreatedOrders",
-        JSON.stringify([newEntry, ...myHistory]),
-      );
-
-      // Salvare in istoricul general
-      const history = JSON.parse(localStorage.getItem("ordersHistory") || "[]");
-      const dashboardEntry = {
-        id: response.data.orderId,
-        customer: order.customerId,
-        status: "Plasată",
-        date: newEntry.date,
-      };
-      localStorage.setItem(
-        "ordersHistory",
-        JSON.stringify([dashboardEntry, ...history]),
-      );
-
-      toast.success("Comandă confirmată!");
-      setTimeout(() => navigate("/invoices"), 1000);
-    } catch (e) {
-      toast.error("Eroare server");
+      const response = await fetch(`${API_BASE}/order/place-order`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          customerId: formData.customerId,
+          deliveryAddress: { ...formData },
+          items: items.map((item) => ({
+            productId: item.productId,
+            quantity: item.quantity,
+          })),
+        }),
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setMessage({
+          type: "success",
+          text: "Comandă plasată cu succes!",
+          details: `Total: $${calculateTotal()}`,
+        });
+      } else {
+        setMessage({
+          type: "error",
+          text: "Eroare la plasarea comenzii",
+          details: data.message,
+        });
+      }
+    } catch (error: any) {
+      setMessage({
+        type: "error",
+        text: "Eroare de conexiune",
+        details: error.message,
+      });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="p-10 max-w-7xl mx-auto font-sans text-white"
-    >
-      <h1 className="font-heading text-3xl font-extrabold uppercase mb-12 tracking-tighter text-center">
-        PASUL 1:{" "}
-        <span className="text-blue-500 italic">ÎNREGISTRARE COMANDĂ</span>
-      </h1>
+    <div className="p-8 max-w-4xl mx-auto">
+      <h2 className="text-3xl font-bold mb-6 flex items-center gap-2">
+        <Package className="text-blue-500" /> Plasare Comandă
+      </h2>
 
-      {/* Container principal */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-stretch">
-        {/* Card 1: Logistica Destinatie */}
-        <div className="lg:col-span-2 bg-[#11131f] p-10 rounded-[2.5rem] border border-white/10 shadow-2xl flex flex-col">
-          <h3 className="font-heading text-blue-500 font-bold text-[10px] uppercase mb-10 tracking-[0.3em]">
-            Logistica Destinație
-          </h3>
-          <div className="space-y-8 flex-1">
-            <div>
-              <label className="font-heading text-[10px] font-bold text-white/20 uppercase mb-2 ml-1 block tracking-widest">
-                ID Client
-              </label>
-              <input
-                placeholder="CUST-XXXX"
-                className={`w-full bg-white/5 p-4 rounded-xl border font-mono text-sm outline-none transition-all ${
-                  errors.customerId
-                    ? "border-red-500"
-                    : "border-white/10 focus:border-blue-500"
-                }`}
-                value={order.customerId}
-                onChange={(e) => {
-                  const val = e.target.value.startsWith("CUST-")
-                    ? e.target.value
-                    : "CUST-";
-                  setOrder({ ...order, customerId: val });
-                }}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="col-span-2">
-                <label className="font-heading text-[10px] font-bold text-white/20 uppercase mb-2 ml-1 block tracking-widest">
-                  Adresă
-                </label>
-                <input
-                  placeholder="Strada Livezii nr 44"
-                  className="w-full bg-white/5 p-4 rounded-xl border border-white/10 outline-none focus:border-blue-500 font-mono text-sm"
-                  onChange={(e) =>
-                    setOrder({
-                      ...order,
-                      deliveryAddress: {
-                        ...order.deliveryAddress,
-                        street: e.target.value,
-                      },
-                    })
-                  }
-                />
-              </div>
-              <div>
-                <label className="font-heading text-[10px] font-bold text-white/20 uppercase mb-2 ml-1 block tracking-widest">
-                  Oraș
-                </label>
-                <input
-                  placeholder="Cluj-Napoca"
-                  className="w-full bg-white/5 p-4 rounded-xl border border-white/10 outline-none focus:border-blue-500 font-mono text-sm"
-                  onChange={(e) =>
-                    setOrder({
-                      ...order,
-                      deliveryAddress: {
-                        ...order.deliveryAddress,
-                        city: e.target.value,
-                      },
-                    })
-                  }
-                />
-              </div>
-              <div>
-                <label className="font-heading text-[10px] font-bold text-white/20 uppercase mb-2 ml-1 block tracking-widest">
-                  Cod Poștal
-                </label>
-                <input
-                  placeholder="XXXXXX"
-                  className={`w-full bg-white/5 p-4 rounded-xl border font-mono text-sm outline-none ${
-                    errors.postalCode
-                      ? "border-red-500"
-                      : "border-white/10 focus:border-blue-500"
-                  }`}
-                  onChange={(e) =>
-                    setOrder({
-                      ...order,
-                      deliveryAddress: {
-                        ...order.deliveryAddress,
-                        postalCode: e.target.value,
-                      },
-                    })
-                  }
-                />
-              </div>
-            </div>
+      {message && (
+        <div
+          className={`mb-6 p-4 rounded-lg flex gap-3 ${message.type === "success" ? "bg-green-900/30 border border-green-700" : "bg-red-900/30 border border-red-700"}`}
+        >
+          {message.type === "success" ? (
+            <CheckCircle className="text-green-400" />
+          ) : (
+            <AlertCircle className="text-red-400" />
+          )}
+          <div>
+            <p className="font-bold">{message.text}</p>
+            <p className="text-sm opacity-80">{message.details}</p>
           </div>
         </div>
+      )}
 
-        {/* Card 2: Specificații Produs */}
-        <div className="bg-[#11131f] p-10 rounded-[2.5rem] border border-white/10 shadow-2xl flex flex-col h-full">
-          <h3 className="font-heading text-blue-500 font-bold text-[10px] uppercase mb-10 tracking-[0.3em] text-center">
-            Specificații Produs
-          </h3>
+      <div className="bg-[#1a1c2e] border border-white/10 rounded-xl p-6 space-y-6">
+        <div>
+          <label className="block text-sm font-medium mb-2">Customer ID</label>
+          <input
+            type="text"
+            value={formData.customerId}
+            onChange={(e) =>
+              setFormData({ ...formData, customerId: e.target.value })
+            }
+            className="w-full bg-[#07080d] border border-white/10 rounded-lg p-2"
+          />
+        </div>
 
-          <div className="space-y-10 flex-1">
-            <div>
-              <label className="font-heading text-[10px] font-bold text-white/20 uppercase mb-2 ml-1 block tracking-widest">
-                Identificator Articol
-              </label>
-              <input
-                placeholder="PROD-XXXX"
-                className={`w-full bg-white/5 p-4 rounded-xl border font-mono text-sm outline-none transition-all ${
-                  errors.productId
-                    ? "border-red-500"
-                    : "border-white/10 focus:border-blue-500"
-                }`}
-                value={order.items[0].productId}
-                onChange={(e) => {
-                  const val = e.target.value.startsWith("PROD-")
-                    ? e.target.value
-                    : "PROD-";
-                  const n = [...order.items];
-                  n[0].productId = val;
-                  setOrder({ ...order, items: n });
-                }}
-              />
-            </div>
+        <div className="grid grid-cols-2 gap-4">
+          <input
+            placeholder="Street"
+            value={formData.street}
+            onChange={(e) =>
+              setFormData({ ...formData, street: e.target.value })
+            }
+            className="bg-[#07080d] border border-white/10 rounded-lg p-2"
+          />
+          <input
+            placeholder="City"
+            value={formData.city}
+            onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+            className="bg-[#07080d] border border-white/10 rounded-lg p-2"
+          />
+          <input
+            placeholder="Postal Code"
+            value={formData.postalCode}
+            onChange={(e) =>
+              setFormData({ ...formData, postalCode: e.target.value })
+            }
+            className="bg-[#07080d] border border-white/10 rounded-lg p-2"
+          />
+          <input
+            placeholder="Country"
+            value={formData.country}
+            onChange={(e) =>
+              setFormData({ ...formData, country: e.target.value })
+            }
+            className="bg-[#07080d] border border-white/10 rounded-lg p-2"
+          />
+        </div>
 
-            <div className="bg-white/5 p-6 rounded-2xl border border-white/5 text-center">
-              <label className="font-heading text-[10px] font-black text-white/20 uppercase tracking-widest mb-6 block">
-                Unități Comandate
-              </label>
-
-              <div className="flex items-center justify-center gap-8">
-                <button
-                  type="button"
-                  onClick={() => {
-                    const n = [...order.items];
-                    if (n[0].quantity > 1) {
-                      n[0].quantity -= 1;
-                      setOrder({ ...order, items: n });
-                    }
-                  }}
-                  className="w-12 h-12 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/5 transition-colors text-white/50 hover:text-white"
-                >
-                  <span className="text-2xl">-</span>
-                </button>
-
-                {/* Afișare Cantitate */}
-                <div className="w-20">
-                  <span className="font-heading text-6xl font-extrabold text-blue-500 block">
-                    {order.items[0].quantity}
-                  </span>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    const n = [...order.items];
-                    n[0].quantity += 1;
-                    setOrder({ ...order, items: n });
-                  }}
-                  className="w-12 h-12 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/5 transition-colors text-white/50 hover:text-white"
-                >
-                  <span className="text-2xl">+</span>
-                </button>
-              </div>
-            </div>
+        <div>
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="font-bold text-lg">Produse</h3>
+            <button
+              onClick={addItem}
+              className="text-sm bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded-md flex items-center gap-1"
+            >
+              <Plus size={14} /> Adaugă
+            </button>
           </div>
+          {items.map((item, idx) => (
+            <div key={idx} className="flex gap-2 mb-2">
+              <select
+                value={item.productId}
+                onChange={(e) => updateItem(idx, "productId", e.target.value)}
+                className="flex-1 bg-[#07080d] border border-white/10 rounded-lg p-2"
+              >
+                {PRODUCTS.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} (${p.price})
+                  </option>
+                ))}
+              </select>
+              <input
+                type="number"
+                value={item.quantity}
+                onChange={(e) => updateItem(idx, "quantity", e.target.value)}
+                className="w-20 bg-[#07080d] border border-white/10 rounded-lg p-2"
+              />
+              <button
+                onClick={() => removeItem(idx)}
+                className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg"
+              >
+                <Trash2 size={18} />
+              </button>
+            </div>
+          ))}
+        </div>
 
+        <div className="pt-4 border-t border-white/10 flex justify-between items-center">
+          <span className="text-xl font-bold">
+            Total: <span className="text-green-400">${calculateTotal()}</span>
+          </span>
           <button
-            onClick={handlePlaceOrder}
+            onClick={handleSubmit}
             disabled={loading}
-            className="w-full py-6 bg-blue-600 rounded-2xl font-heading font-extrabold text-xs tracking-widest hover:bg-blue-500 transition-all shadow-xl shadow-blue-600/20 mt-10"
+            className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 px-6 py-2 rounded-lg font-bold"
           >
-            {loading ? "SE SALVEAZĂ..." : "FINALIZEAZĂ ETAPA 1 →"}
+            {loading ? "Se procesează..." : "Trimite Comanda"}
           </button>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 };
