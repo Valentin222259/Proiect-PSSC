@@ -222,6 +222,16 @@ function ShipmentForm({
           text: "Shipment prepared successfully!",
           details: `Tracking #${data.trackingNumber} - Carrier: ${data.carrier}`,
         });
+        // Reset form
+        setFormData({
+          orderId: "",
+          customerId: "",
+          street: "",
+          city: "",
+          postalCode: "",
+          country: "",
+        });
+        setItems([]);
         setTimeout(() => setMessage(null as any), 5000);
       } else {
         setMessage({
@@ -498,7 +508,12 @@ export const ShipmentPage = ({
         </div>
       )}
 
-      {workflowState.invoices.length > 0 && (
+      {workflowState.invoices.filter(
+        (invoice) =>
+          !workflowState.completedWorkflows.some(
+            (ship) => ship.details?.orderId === invoice.details?.orderId,
+          ),
+      ).length > 0 && (
         <div className="bg-[#1a1c2e] border border-white/10 rounded-xl p-6">
           <h3 className="text-xl font-bold mb-4">
             📄 Available Invoices (click to populate form)
@@ -516,34 +531,42 @@ export const ShipmentPage = ({
                 </tr>
               </thead>
               <tbody>
-                {workflowState.invoices.map((invoice) => (
-                  <tr
-                    key={invoice.id}
-                    onClick={() => handleInvoiceClick(invoice)}
-                    className="border-b border-white/5 hover:bg-white/5 cursor-pointer"
-                  >
-                    <td className="text-center py-3 px-4 font-mono text-purple-400">
-                      {invoice.id}
-                    </td>
-                    <td className="text-center py-3 px-4 font-mono text-blue-400">
-                      {invoice.details?.orderId}
-                    </td>
-                    <td className="text-center py-3 px-4">
-                      {invoice.customerId}
-                    </td>
-                    <td className="text-center py-3 px-4">
-                      {invoice.details?.city}
-                    </td>
-                    <td className="text-center py-3 px-4 text-green-400">
-                      ${invoice.details?.total}
-                    </td>
-                    <td className="text-center py-3 px-4">
-                      <span className="bg-purple-500/20 text-purple-400 px-3 py-1 rounded-full text-xs">
-                        Ready
-                      </span>
-                    </td>
-                  </tr>
-                ))}
+                {workflowState.invoices
+                  .filter(
+                    (invoice) =>
+                      !workflowState.completedWorkflows.some(
+                        (ship) =>
+                          ship.details?.orderId === invoice.details?.orderId,
+                      ),
+                  )
+                  .map((invoice) => (
+                    <tr
+                      key={invoice.id}
+                      onClick={() => handleInvoiceClick(invoice)}
+                      className="border-b border-white/5 hover:bg-white/5 cursor-pointer"
+                    >
+                      <td className="text-center py-3 px-4 font-mono text-purple-400">
+                        {invoice.id}
+                      </td>
+                      <td className="text-center py-3 px-4 font-mono text-blue-400">
+                        {invoice.details?.orderId}
+                      </td>
+                      <td className="text-center py-3 px-4">
+                        {invoice.customerId}
+                      </td>
+                      <td className="text-center py-3 px-4">
+                        {invoice.details?.city}
+                      </td>
+                      <td className="text-center py-3 px-4 text-green-400">
+                        ${invoice.details?.total}
+                      </td>
+                      <td className="text-center py-3 px-4">
+                        <span className="bg-purple-500/20 text-purple-400 px-3 py-1 rounded-full text-xs">
+                          Ready
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
               </tbody>
             </table>
           </div>
@@ -604,8 +627,8 @@ export const ShipmentPage = ({
                       {workflow.details?.city}
                     </td>
                     <td className="text-center py-3 px-4">
-                      <span className="bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 w-fit justify-center">
-                        <CheckCircle size={14} /> COMPLETE
+                      <span className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 w-fit justify-center">
+                        <CheckCircle size={14} /> DELIVERED
                       </span>
                     </td>
                   </tr>

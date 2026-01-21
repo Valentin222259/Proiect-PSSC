@@ -222,6 +222,15 @@ function OrderForm({
           text: "Order placed successfully!",
           details: `Order #${orderId} - Total: $${calculateTotal()}`,
         });
+        // Reset form
+        setFormData({
+          customerId: "",
+          street: "",
+          city: "",
+          postalCode: "",
+          country: "",
+        });
+        setItems([]);
         setTimeout(() => setMessage(null as any), 5000);
       } else {
         setMessage({
@@ -480,8 +489,28 @@ export const OrderPage = ({
                       {order.details?.itemCount}
                     </td>
                     <td className="text-center py-3 px-4">
-                      <span className="bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-xs">
-                        {order.status}
+                      <span
+                        className={`px-3 py-1.5 rounded-full text-xs font-semibold ${
+                          workflowState.completedWorkflows.some(
+                            (ship) => ship.details?.orderId === order.id,
+                          )
+                            ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                            : workflowState.invoices.some(
+                                  (inv) => inv.details?.orderId === order.id,
+                                )
+                              ? "bg-blue-500/20 text-blue-400 border border-blue-500/30"
+                              : "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30"
+                        }`}
+                      >
+                        {workflowState.completedWorkflows.some(
+                          (ship) => ship.details?.orderId === order.id,
+                        )
+                          ? "Delivered"
+                          : workflowState.invoices.some(
+                                (inv) => inv.details?.orderId === order.id,
+                              )
+                            ? "Processing"
+                            : "Pending"}
                       </span>
                     </td>
                   </tr>

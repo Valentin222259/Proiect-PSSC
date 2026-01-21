@@ -255,6 +255,17 @@ function InvoiceForm({
           text: "Invoice generated successfully!",
           details: `Invoice #${data.invoiceNumber} - Total: $${calculateTotal()}`,
         });
+        // Reset form
+        setFormData({
+          orderId: "",
+          customerId: "",
+          invoiceNumber: "",
+          street: "",
+          city: "",
+          postalCode: "",
+          country: "",
+        });
+        setItems([]);
         setTimeout(() => setMessage(null as any), 5000);
       } else {
         setMessage({
@@ -525,7 +536,12 @@ export const InvoicePage = ({
         </div>
       )}
 
-      {workflowState.orders.length > 0 && (
+      {workflowState.orders.filter(
+        (order) =>
+          !workflowState.invoices.some(
+            (inv) => inv.details?.orderId === order.id,
+          ),
+      ).length > 0 && (
         <div className="bg-[#1a1c2e] border border-white/10 rounded-xl p-6">
           <h3 className="text-xl font-bold mb-4">
             📦 Available Orders (click to populate form)
@@ -543,34 +559,41 @@ export const InvoicePage = ({
                 </tr>
               </thead>
               <tbody>
-                {workflowState.orders.map((order) => (
-                  <tr
-                    key={order.id}
-                    onClick={() => handleOrderClick(order)}
-                    className="border-b border-white/5 hover:bg-white/5 cursor-pointer"
-                  >
-                    <td className="text-center py-3 px-4 font-mono text-blue-400">
-                      {order.id}
-                    </td>
-                    <td className="text-center py-3 px-4">
-                      {order.customerId}
-                    </td>
-                    <td className="text-center py-3 px-4">
-                      {order.details?.city}
-                    </td>
-                    <td className="text-center py-3 px-4 text-green-400">
-                      ${order.details?.total}
-                    </td>
-                    <td className="text-center py-3 px-4">
-                      {order.details?.itemCount}
-                    </td>
-                    <td className="text-center py-3 px-4">
-                      <span className="bg-blue-500/20 text-blue-400 px-3 py-1 rounded-full text-xs">
-                        Ready
-                      </span>
-                    </td>
-                  </tr>
-                ))}
+                {workflowState.orders
+                  .filter(
+                    (order) =>
+                      !workflowState.invoices.some(
+                        (inv) => inv.details?.orderId === order.id,
+                      ),
+                  )
+                  .map((order) => (
+                    <tr
+                      key={order.id}
+                      onClick={() => handleOrderClick(order)}
+                      className="border-b border-white/5 hover:bg-white/5 cursor-pointer"
+                    >
+                      <td className="text-center py-3 px-4 font-mono text-blue-400">
+                        {order.id}
+                      </td>
+                      <td className="text-center py-3 px-4">
+                        {order.customerId}
+                      </td>
+                      <td className="text-center py-3 px-4">
+                        {order.details?.city}
+                      </td>
+                      <td className="text-center py-3 px-4 text-green-400">
+                        ${order.details?.total}
+                      </td>
+                      <td className="text-center py-3 px-4">
+                        {order.details?.itemCount}
+                      </td>
+                      <td className="text-center py-3 px-4">
+                        <span className="bg-blue-500/20 text-blue-400 px-3 py-1 rounded-full text-xs">
+                          Ready
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
               </tbody>
             </table>
           </div>
@@ -622,8 +645,23 @@ export const InvoicePage = ({
                       ${invoice.details?.total}
                     </td>
                     <td className="text-center py-3 px-4">
-                      <span className="bg-purple-500/20 text-purple-400 px-3 py-1 rounded-full text-xs">
-                        {invoice.status}
+                      <span
+                        className={`px-3 py-1.5 rounded-full text-xs font-semibold border ${
+                          workflowState.completedWorkflows.some(
+                            (ship) =>
+                              ship.details?.orderId ===
+                              invoice.details?.orderId,
+                          )
+                            ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+                            : "bg-blue-500/20 text-blue-400 border-blue-500/30"
+                        }`}
+                      >
+                        {workflowState.completedWorkflows.some(
+                          (ship) =>
+                            ship.details?.orderId === invoice.details?.orderId,
+                        )
+                          ? "Delivered"
+                          : "In Transit"}
                       </span>
                     </td>
                   </tr>
