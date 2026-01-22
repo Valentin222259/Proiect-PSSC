@@ -96,7 +96,7 @@ function InvoiceForm({
   };
 
   const validateForm = () => {
-    // Invoice Number: format like INV-XXX or similar
+    // Invoice Number
     if (!formData.invoiceNumber) {
       return {
         valid: false,
@@ -111,7 +111,7 @@ function InvoiceForm({
         details: "Format: INV-001 (letters-numbers)",
       };
     }
-    // Street: non-empty, min 5 chars
+    // Street
     if (!formData.street || formData.street.length < 5) {
       return {
         valid: false,
@@ -119,7 +119,7 @@ function InvoiceForm({
         details: "Must be at least 5 characters",
       };
     }
-    // City: non-empty, min 2 chars
+    // City
     if (!formData.city || formData.city.length < 2) {
       return {
         valid: false,
@@ -127,7 +127,7 @@ function InvoiceForm({
         details: "Must be at least 2 characters",
       };
     }
-    // Postal Code: exactly 6 digits
+    // Postal Code
     if (!/^\d{6}$/.test(formData.postalCode)) {
       return {
         valid: false,
@@ -135,7 +135,7 @@ function InvoiceForm({
         details: "Must be exactly 6 digits (e.g., 435500)",
       };
     }
-    // Country: non-empty, min 2 chars
+    // Country
     if (!formData.country || formData.country.length < 2) {
       return {
         valid: false,

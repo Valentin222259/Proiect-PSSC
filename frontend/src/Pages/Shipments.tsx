@@ -100,7 +100,7 @@ function ShipmentForm({
         details: "Must be at least 5 characters",
       };
     }
-    // City: non-empty, min 2 chars
+    // City
     if (!formData.city || formData.city.length < 2) {
       return {
         valid: false,
@@ -108,7 +108,7 @@ function ShipmentForm({
         details: "Must be at least 2 characters",
       };
     }
-    // Postal Code: exactly 6 digits
+    // Postal Code
     if (!/^\d{6}$/.test(formData.postalCode)) {
       return {
         valid: false,
